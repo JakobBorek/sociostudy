@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, Brain, Layers, TrendingUp, Flame } from "lucide-react";
-import { units, topics } from "@/data/studyContent";
+import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 
 export default function Dashboard() {
+  const { units, topics } = useStudyData();
   const { progress } = useProgress();
   const totalTopics = topics.length;
   const knownCount = progress.knownCards.length;

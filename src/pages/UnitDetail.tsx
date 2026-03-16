@@ -2,10 +2,11 @@ import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ChevronDown, ArrowLeft } from "lucide-react";
-import { units, topics } from "@/data/studyContent";
+import { useStudyData } from "@/contexts/StudyDataContext";
 
 export default function UnitDetail() {
   const { unitId } = useParams();
+  const { units, topics } = useStudyData();
   const unit = units.find((u) => u.id === unitId);
   const unitTopics = topics.filter((t) => t.unit === unitId);
   const [expanded, setExpanded] = useState<string | null>(null);

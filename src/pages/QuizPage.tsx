@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, RotateCcw } from "lucide-react";
-import { generateQuizQuestions, units, QuizQuestion } from "@/data/studyContent";
+import { generateQuizQuestions, type QuizQuestion } from "@/data/studyContent";
+import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 
 type Phase = "setup" | "quiz" | "results";
 
 export default function QuizPage() {
+  const { units, topics } = useStudyData();
   const [phase, setPhase] = useState<Phase>("setup");
   const [unitFilter, setUnitFilter] = useState<string>("");
   const [questionCount, setQuestionCount] = useState(10);
@@ -17,7 +19,9 @@ export default function QuizPage() {
   const { addQuizScore, updateStreak } = useProgress();
 
   const startQuiz = () => {
-    const all = generateQuizQuestions(unitFilter || undefined);
+    // Generate quiz from merged topics (built-in + custom)
+    const filtered = unitFilter ? topics.filter(t => t.unit === unitFilter) : topics;
+    const all = generateQuizFromTopics(filtered);
     setQuestions(all.slice(0, questionCount));
     setCurrentQ(0);
     setAnswers([]);
@@ -38,8 +42,6 @@ export default function QuizPage() {
       setCurrentQ((i) => i + 1);
       setSelected(null);
     } else {
-      const score = answers.filter((a) => a.isCorrect).length + (selected === questions[currentQ]?.correctAnswer ? 0 : 0);
-      // Score already tracked in answers
       const finalScore = answers.filter(a => a.isCorrect).length;
       addQuizScore(finalScore, questions.length, unitFilter || "all");
       setPhase("results");
@@ -215,4 +217,63 @@ export default function QuizPage() {
       )}
     </div>
   );
+}
+
+// Local quiz generator that works with any topics array
+import { shuffleArray, type StudyTopic } from "@/data/studyContent";
+
+function generateQuizFromTopics(topicsList: StudyTopic[]): QuizQuestion[] {
+  const questions: QuizQuestion[] = [];
+
+  topicsList.forEach((topic) => {
+    questions.push({
+      id: `${topic.id}-def`,
+      question: `What is ${topic.term}?`,
+      correctAnswer: topic.definition,
+      options: generateOptions(topic.definition, topicsList.filter(t => t.id !== topic.id).map(t => t.definition)),
+      topicId: topic.id,
+      unit: topic.unit,
+    });
+
+    if (topic.pros.length > 0) {
+      const correctPro = topic.pros[0];
+      questions.push({
+        id: `${topic.id}-pro`,
+        question: `Which is an advantage of ${topic.term}?`,
+        correctAnswer: correctPro,
+        options: generateOptions(correctPro, [
+          ...topicsList.flatMap(t => t.cons),
+          ...topicsList.filter(t => t.id !== topic.id).flatMap(t => t.pros),
+        ]),
+        topicId: topic.id,
+        unit: topic.unit,
+      });
+    }
+
+    if (topic.cons.length > 0) {
+      const correctCon = topic.cons[0];
+      questions.push({
+        id: `${topic.id}-con`,
+        question: `Which is a disadvantage of ${topic.term}?`,
+        correctAnswer: correctCon,
+        options: generateOptions(correctCon, [
+          ...topicsList.flatMap(t => t.pros),
+          ...topicsList.filter(t => t.id !== topic.id).flatMap(t => t.cons),
+        ]),
+        topicId: topic.id,
+        unit: topic.unit,
+      });
+    }
+  });
+
+  return shuffleArray(questions);
+}
+
+function generateOptions(correct: string, pool: string[]): string[] {
+  const unique = [...new Set(pool.filter(o => o !== correct))];
+  const wrong = shuffleArray(unique).slice(0, 3);
+  while (wrong.length < 3) {
+    wrong.push("None of the above");
+  }
+  return shuffleArray([correct, ...wrong]);
 }

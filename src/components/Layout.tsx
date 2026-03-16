@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Brain, LayoutDashboard, Layers } from "lucide-react";
+import { BookOpen, Brain, LayoutDashboard, Layers, PlusCircle } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/units", label: "Units", icon: BookOpen },
   { to: "/flashcards", label: "Flashcards", icon: Layers },
   { to: "/quiz", label: "Quiz", icon: Brain },
+  { to: "/add-unit", label: "Add Unit", icon: PlusCircle },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

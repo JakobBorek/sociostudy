@@ -1,18 +1,19 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import { topics, units } from "@/data/studyContent";
+import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 import Flashcard from "@/components/Flashcard";
 
 export default function FlashcardsPage() {
+  const { units, topics } = useStudyData();
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [currentIndex, setCurrentIndex] = useState(0);
   const { progress, markCardKnown, markCardLearning, updateStreak } = useProgress();
 
   const filtered = useMemo(
     () => (unitFilter === "all" ? topics : topics.filter((t) => t.unit === unitFilter)),
-    [unitFilter]
+    [unitFilter, topics]
   );
 
   const current = filtered[currentIndex];
