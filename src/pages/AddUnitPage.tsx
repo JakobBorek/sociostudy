@@ -18,6 +18,22 @@ export default function AddUnitPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const extractPdfText = async (file: File): Promise<string> => {
+    const pdfjs: any = await import("pdfjs-dist");
+    // @ts-ignore
+    const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: buf }).promise;
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      fullText += tc.items.map((it: any) => it.str).join(" ") + "\n\n";
+    }
+    return fullText;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -27,8 +43,19 @@ export default function AddUnitPage() {
     if (file.type.startsWith("text/") || file.name.endsWith(".md") || file.name.endsWith(".txt")) {
       const text = await file.text();
       setContent((prev) => (prev ? prev + "\n\n" + text : text));
-    } else if (file.type === "application/pdf" || file.type.includes("document")) {
-      toast({ title: "File type note", description: "Please paste the text content from this file for best results." });
+    } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      try {
+        toast({ title: "Reading PDF…", description: "Extracting text from the PDF." });
+        const text = await extractPdfText(file);
+        if (!text.trim()) {
+          toast({ title: "Empty PDF", description: "Couldn't extract text. The PDF may be scanned images.", variant: "destructive" });
+          return;
+        }
+        setContent((prev) => (prev ? prev + "\n\n" + text : text));
+        toast({ title: "PDF loaded", description: `Extracted ${text.length} characters.` });
+      } catch (err: any) {
+        toast({ title: "PDF error", description: err.message || "Could not read PDF.", variant: "destructive" });
+      }
     } else if (file.type.startsWith("image/")) {
       // Convert image to base64 and send for extraction
       const reader = new FileReader();
@@ -164,11 +191,11 @@ export default function AddUnitPage() {
           <label className="flex items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border p-6 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors">
             <Upload size={20} className="text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              {fileName ? fileName : "Drop a .txt, .md, or image file here"}
+              {fileName ? fileName : "Drop a .txt, .md, .pdf, or image file here"}
             </span>
             <input
               type="file"
-              accept=".txt,.md,.csv,image/*"
+              accept=".txt,.md,.csv,.pdf,image/*"
               onChange={handleFileUpload}
               className="hidden"
             />
