@@ -45,6 +45,27 @@ export const units: Unit[] = [
     description: "Official Statistics, Historical Documents, Media & Digital Sources",
     icon: "📚",
   },
+  {
+    id: "2.1",
+    title: "Identity: Self & Society",
+    shortTitle: "Identity",
+    description: "Culture, norms, values, roles, socialisation & key perspectives",
+    icon: "🧬",
+  },
+  {
+    id: "2.2",
+    title: "Social Control & Sub-cultures",
+    shortTitle: "Social Control",
+    description: "Formal/informal control, sanctions, ISA/RSA, sub-cultures",
+    icon: "⚖️",
+  },
+  {
+    id: "2.3",
+    title: "Identities in a Global World",
+    shortTitle: "Global Identity",
+    description: "Age, gender, ethnicity, class, globalisation & hybrid identities",
+    icon: "🌍",
+  },
 ];
 
 export const topics: StudyTopic[] = [
