@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Brain, Layers, TrendingUp, Flame } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, Layers, TrendingUp, Flame } from "lucide-react";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 
@@ -104,6 +104,22 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Exam technique highlight */}
+      <Link
+        to="/exam-technique"
+        className="block rounded-xl border border-accent/30 bg-card p-5 card-hover"
+      >
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg gradient-amber p-3 text-accent-foreground">
+            <GraduationCap size={22} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold text-foreground">How to write Evaluate answers</p>
+            <p className="text-xs text-muted-foreground">IGCSE exam technique for Discuss [8] & Evaluate [14] questions.</p>
+          </div>
+        </div>
+      </Link>
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-4">

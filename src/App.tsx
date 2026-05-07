@@ -11,6 +11,7 @@ import QuizPage from "@/pages/QuizPage";
 import UnitsPage from "@/pages/UnitsPage";
 import UnitDetail from "@/pages/UnitDetail";
 import AddUnitPage from "@/pages/AddUnitPage";
+import ExamTechniquePage from "@/pages/ExamTechniquePage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/units" element={<UnitsPage />} />
               <Route path="/units/:unitId" element={<UnitDetail />} />
               <Route path="/add-unit" element={<AddUnitPage />} />
+              <Route path="/exam-technique" element={<ExamTechniquePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
