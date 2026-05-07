@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, PlusCircle } from "lucide-react";
+import { ChevronRight, PlusCircle, GraduationCap } from "lucide-react";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 
@@ -20,6 +20,20 @@ export default function UnitsPage() {
           Add Unit
         </Link>
       </div>
+      <Link
+        to="/exam-technique"
+        className="flex items-center gap-4 rounded-xl border border-accent/30 bg-card p-5 card-hover group"
+      >
+        <div className="rounded-lg gradient-amber p-3 text-accent-foreground">
+          <GraduationCap size={22} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display font-bold text-foreground">Exam Skills — Evaluate Answers</h2>
+          <p className="text-sm text-muted-foreground">Learn to structure Discuss [8] & Evaluate [14] questions.</p>
+        </div>
+        <ChevronRight size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
+      </Link>
+
       <div className="grid gap-4">
         {units.map((unit, i) => {
           const unitTopics = topics.filter((t) => t.unit === unit.id);
