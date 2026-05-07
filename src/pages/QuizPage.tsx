@@ -1,15 +1,45 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, RotateCcw } from "lucide-react";
-import { generateQuizQuestions, type QuizQuestion } from "@/data/studyContent";
+import { Brain, RotateCcw, PenLine, Loader2 } from "lucide-react";
+import { type QuizQuestion } from "@/data/studyContent";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-type Phase = "setup" | "quiz" | "results";
+type Phase = "setup" | "quiz" | "results" | "eval-setup" | "eval-write" | "eval-result";
+type Mode = "mcq" | "evaluate";
+type EvalMarks = 8 | 14;
+
+const EVAL_QUESTIONS: Record<EvalMarks, { id: string; question: string }[]> = {
+  8: [
+    { id: "d1", question: "Discuss how family functions have changed over time. Your answer should include at least three developed points with evidence." },
+    { id: "d2", question: "Discuss reasons why some students from minority backgrounds may underachieve at school. Your answer should include at least three developed points with evidence." },
+  ],
+  14: [
+    { id: "e1", question: "Evaluate the view that the nuclear family is the best family type for modern society. Include at least three arguments for, three against, and a conclusion." },
+    { id: "e2", question: "Evaluate the view that informal social control is more effective than formal social control. Include at least three arguments for, three against, and a conclusion." },
+  ],
+};
+
+interface EvalResult {
+  mark: number;
+  outOf: number;
+  level: string;
+  strengths: string;
+  improvements: string;
+}
 
 export default function QuizPage() {
   const { units, topics } = useStudyData();
+  const [mode, setMode] = useState<Mode>("mcq");
   const [phase, setPhase] = useState<Phase>("setup");
+  // evaluate state
+  const [evalMarks, setEvalMarks] = useState<EvalMarks>(8);
+  const [evalQ, setEvalQ] = useState<{ id: string; question: string } | null>(null);
+  const [evalAnswer, setEvalAnswer] = useState("");
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
   const [unitFilter, setUnitFilter] = useState<string>("");
   const [questionCount, setQuestionCount] = useState(10);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -51,9 +81,153 @@ export default function QuizPage() {
   const q = questions[currentQ];
   const score = answers.filter((a) => a.isCorrect).length;
 
+  const startEval = () => {
+    const pool = EVAL_QUESTIONS[evalMarks];
+    setEvalQ(pool[Math.floor(Math.random() * pool.length)]);
+    setEvalAnswer("");
+    setEvalResult(null);
+    setPhase("eval-write");
+    updateStreak();
+  };
+
+  const submitEval = async () => {
+    if (!evalQ || evalAnswer.trim().length < 30) {
+      toast.error("Write a longer answer before submitting.");
+      return;
+    }
+    setEvalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("evaluate-answer", {
+        body: { question: evalQ.question, marks: evalMarks, answer: evalAnswer },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setEvalResult(data as EvalResult);
+      setPhase("eval-result");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to mark your answer.");
+    } finally {
+      setEvalLoading(false);
+    }
+  };
+
+  // ===== EVALUATE MODE =====
+  if (mode === "evaluate" && (phase === "setup" || phase === "eval-setup")) {
+    return (
+      <div className="max-w-md mx-auto space-y-6">
+        <ModeToggle mode={mode} setMode={(m) => { setMode(m); setPhase("setup"); }} />
+        <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
+          <PenLine className="text-accent" /> Evaluate Practice
+        </h1>
+        <div className="rounded-xl bg-card border border-border p-6 space-y-5">
+          <p className="text-sm text-muted-foreground">
+            Practice IGCSE Sociology long-answer questions. AI marks your answer using the official Cambridge rubric.
+          </p>
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-2">Question type</label>
+            <div className="flex gap-2">
+              {([8, 14] as EvalMarks[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setEvalMarks(m)}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                    evalMarks === m ? "gradient-amber text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {m === 8 ? "Discuss · 8 marks" : "Evaluate · 14 marks"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={startEval}
+            className="w-full gradient-amber rounded-lg py-3 font-display font-bold text-accent-foreground transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Start Practice
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "evaluate" && phase === "eval-write" && evalQ) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{evalMarks === 8 ? "Discuss" : "Evaluate"} · {evalMarks} marks</span>
+          <span>{evalAnswer.trim().split(/\s+/).filter(Boolean).length} words</span>
+        </div>
+        <div className="rounded-xl bg-card border border-border p-6">
+          <h2 className="font-display text-lg font-bold text-foreground">{evalQ.question}</h2>
+        </div>
+        <textarea
+          value={evalAnswer}
+          onChange={(e) => setEvalAnswer(e.target.value)}
+          placeholder="Write your answer here. Use clear paragraphs for each point and include sociological concepts, evidence, and examples..."
+          className="w-full min-h-[300px] rounded-xl border border-border bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPhase("setup")}
+            className="rounded-lg bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={submitEval}
+            disabled={evalLoading}
+            className="flex-1 gradient-amber rounded-lg py-3 font-display font-bold text-accent-foreground transition-transform hover:scale-[1.02] disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {evalLoading ? <><Loader2 className="animate-spin" size={18} /> Marking...</> : "Submit for marking"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "evaluate" && phase === "eval-result" && evalResult && evalQ) {
+    const pct = evalResult.mark / evalResult.outOf;
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="gradient-navy rounded-2xl p-8 text-center text-primary-foreground"
+        >
+          <p className="text-sm uppercase tracking-wider text-primary-foreground/60 mb-2">{evalResult.level}</p>
+          <p className="font-display text-5xl font-bold text-gradient mb-1">
+            {evalResult.mark}/{evalResult.outOf}
+          </p>
+          <p className="text-primary-foreground/70 text-sm">
+            {pct >= 0.85 ? "Excellent! 🎉" : pct >= 0.6 ? "Solid attempt 💪" : "Keep practising 📚"}
+          </p>
+        </motion.div>
+        <div className="rounded-xl bg-card border border-border p-5 space-y-3">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Question</p>
+          <p className="text-sm text-foreground">{evalQ.question}</p>
+        </div>
+        <div className="rounded-xl bg-success/5 border border-success/20 p-5">
+          <p className="font-display font-semibold text-foreground mb-1">Strengths</p>
+          <p className="text-sm text-muted-foreground">{evalResult.strengths}</p>
+        </div>
+        <div className="rounded-xl bg-accent/5 border border-accent/20 p-5">
+          <p className="font-display font-semibold text-foreground mb-1">How to improve</p>
+          <p className="text-sm text-muted-foreground">{evalResult.improvements}</p>
+        </div>
+        <button
+          onClick={() => setPhase("setup")}
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-secondary py-3 font-medium text-secondary-foreground hover:bg-secondary/80"
+        >
+          <RotateCcw size={18} /> Try another
+        </button>
+      </div>
+    );
+  }
+
   if (phase === "setup") {
     return (
       <div className="max-w-md mx-auto space-y-6">
+        <ModeToggle mode={mode} setMode={(m) => { setMode(m); setPhase("setup"); }} />
         <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
           <Brain className="text-accent" /> Quiz Mode
         </h1>
@@ -277,3 +451,25 @@ function generateOptions(correct: string, pool: string[]): string[] {
   }
   return shuffleArray([correct, ...wrong]);
 }
+
+function ModeToggle({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
+  return (
+    <div className="flex gap-2 rounded-lg bg-secondary p-1">
+      {([
+        { v: "mcq" as Mode, label: "Multiple choice" },
+        { v: "evaluate" as Mode, label: "Evaluate practice" },
+      ]).map((opt) => (
+        <button
+          key={opt.v}
+          onClick={() => setMode(opt.v)}
+          className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            mode === opt.v ? "gradient-amber text-accent-foreground" : "text-secondary-foreground hover:bg-background/50"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
