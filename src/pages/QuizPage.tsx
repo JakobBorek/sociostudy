@@ -451,3 +451,25 @@ function generateOptions(correct: string, pool: string[]): string[] {
   }
   return shuffleArray([correct, ...wrong]);
 }
+
+function ModeToggle({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
+  return (
+    <div className="flex gap-2 rounded-lg bg-secondary p-1">
+      {([
+        { v: "mcq" as Mode, label: "Multiple choice" },
+        { v: "evaluate" as Mode, label: "Evaluate practice" },
+      ]).map((opt) => (
+        <button
+          key={opt.v}
+          onClick={() => setMode(opt.v)}
+          className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            mode === opt.v ? "gradient-amber text-accent-foreground" : "text-secondary-foreground hover:bg-background/50"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
