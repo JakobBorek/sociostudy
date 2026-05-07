@@ -1,15 +1,45 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, RotateCcw } from "lucide-react";
-import { generateQuizQuestions, type QuizQuestion } from "@/data/studyContent";
+import { Brain, RotateCcw, PenLine, Loader2 } from "lucide-react";
+import { type QuizQuestion } from "@/data/studyContent";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-type Phase = "setup" | "quiz" | "results";
+type Phase = "setup" | "quiz" | "results" | "eval-setup" | "eval-write" | "eval-result";
+type Mode = "mcq" | "evaluate";
+type EvalMarks = 8 | 14;
+
+const EVAL_QUESTIONS: Record<EvalMarks, { id: string; question: string }[]> = {
+  8: [
+    { id: "d1", question: "Discuss how family functions have changed over time. Your answer should include at least three developed points with evidence." },
+    { id: "d2", question: "Discuss reasons why some students from minority backgrounds may underachieve at school. Your answer should include at least three developed points with evidence." },
+  ],
+  14: [
+    { id: "e1", question: "Evaluate the view that the nuclear family is the best family type for modern society. Include at least three arguments for, three against, and a conclusion." },
+    { id: "e2", question: "Evaluate the view that informal social control is more effective than formal social control. Include at least three arguments for, three against, and a conclusion." },
+  ],
+};
+
+interface EvalResult {
+  mark: number;
+  outOf: number;
+  level: string;
+  strengths: string;
+  improvements: string;
+}
 
 export default function QuizPage() {
   const { units, topics } = useStudyData();
+  const [mode, setMode] = useState<Mode>("mcq");
   const [phase, setPhase] = useState<Phase>("setup");
+  // evaluate state
+  const [evalMarks, setEvalMarks] = useState<EvalMarks>(8);
+  const [evalQ, setEvalQ] = useState<{ id: string; question: string } | null>(null);
+  const [evalAnswer, setEvalAnswer] = useState("");
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
   const [unitFilter, setUnitFilter] = useState<string>("");
   const [questionCount, setQuestionCount] = useState(10);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
