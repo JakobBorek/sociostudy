@@ -32,7 +32,7 @@ export const units: Unit[] = [
     icon: "🎯",
   },
   {
-    id: "2.2",
+    id: "1.2",
     title: "Research Methods",
     shortTitle: "Methods",
     description: "Primary/Secondary data, interviews, observations, and questionnaires",
@@ -162,14 +162,14 @@ export const topics: StudyTopic[] = [
     unit: "1.3",
   },
 
-  // UNIT 2.2
+  // UNIT 1.2
   {
     id: "primary-data",
     term: "Primary Data",
     definition: "Data collected by the researcher themselves.",
     pros: ["Data is up to date", "Reliable"],
     cons: ["Might be biased by interviewer", "Time consuming"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "secondary-data",
@@ -177,7 +177,7 @@ export const topics: StudyTopic[] = [
     definition: "Data collected by another researcher (older/primary data).",
     pros: ["Less time consuming (if online)", "Easy to access"],
     cons: ["Might be out of date", "Validity/reliability might not be provable"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "quantitative-data",
@@ -185,7 +185,7 @@ export const topics: StudyTopic[] = [
     definition: "Numerical data used for statistics. Primary: MCQs in structured questionnaires/interviews. Secondary: numerical data from official statistics.",
     pros: ["Reliable", "Can identify patterns"],
     cons: ["Less in-depth", "May miss context"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "qualitative-data",
@@ -193,7 +193,7 @@ export const topics: StudyTopic[] = [
     definition: "Descriptive data rather than numerical. Primary: detailed info from unstructured interview / participant observation. Secondary: historical/personal documents, diaries, media content.",
     pros: ["More in depth", "More valid"],
     cons: ["Time consuming", "Hard to generalise (if small sample)"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "questionnaires",
@@ -201,7 +201,7 @@ export const topics: StudyTopic[] = [
     definition: "A list of questions used in social surveys. Self-Completion → Respondents answer without guidance from researcher.",
     pros: ["No interviewer bias/effect", "Can reach large populations"],
     cons: ["Maybe low response rate", "Misinterpretation leading to 'wrong' answers"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "structured-interviews",
@@ -209,7 +209,7 @@ export const topics: StudyTopic[] = [
     definition: "A list of face-to-face asked questions by an interviewer.",
     pros: ["Higher response rate", "Researcher can explain questions"],
     cons: ["Risk of interviewer bias/effect"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "unstructured-interviews",
@@ -217,7 +217,7 @@ export const topics: StudyTopic[] = [
     definition: "A 'relaxed' discussion-style interview using brief prompts.",
     pros: ["Produces valid data", "Easier to achieve 'Verstehen'"],
     cons: ["Extremely time consuming", "Small unrepresentative samples → hard to generalise"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "semi-structured-interviews",
@@ -225,7 +225,7 @@ export const topics: StudyTopic[] = [
     definition: "Interviewer has an 'interview guide' which allows changing order of questions or adding follow-up questions. Can have open AND closed questions.",
     pros: ["More flexible while maintaining structure", "Achieves consistent results"],
     cons: ["Less flexible than unstructured", "More time consuming"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "group-interviews",
@@ -233,7 +233,7 @@ export const topics: StudyTopic[] = [
     definition: "An interview or discussion conducted in a group setting.",
     pros: ["Can give real-life impression"],
     cons: ["Difficult to record, because people can talk over each other"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "participant-observation",
@@ -241,7 +241,7 @@ export const topics: StudyTopic[] = [
     definition: "Researcher investigates by actively joining the group.",
     pros: ["Highly valid, because researcher experienced it"],
     cons: ["Interviewer's presence → 'Hawthorne Effect' might influence the group's behaviour"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "non-participant-observation",
@@ -249,7 +249,7 @@ export const topics: StudyTopic[] = [
     definition: "Researcher investigates a group without joining them.",
     pros: ["No Hawthorne Effect", "Allows the researcher to observe group IRL"],
     cons: ["Unethical if done without consent", "Doesn't give context for certain behaviour"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "covert-observation",
@@ -257,7 +257,7 @@ export const topics: StudyTopic[] = [
     definition: "Hidden observation without the group knowing they're being observed.",
     pros: ["Gives true picture", "Highly valid"],
     cons: ["Unethical if lack of consent"],
-    unit: "2.2",
+    unit: "1.2",
   },
   {
     id: "overt-observation",
@@ -265,7 +265,7 @@ export const topics: StudyTopic[] = [
     definition: "Group is fully aware that it's being studied.",
     pros: ["Easier to use/combine multiple research methods ('triangulation')", "More ethical"],
     cons: ["Hawthorne Effect", "Refusal of participants"],
-    unit: "2.2",
+    unit: "1.2",
   },
 
   // SECONDARY DATA
