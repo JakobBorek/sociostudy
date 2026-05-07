@@ -191,7 +191,7 @@ export default function AddUnitPage() {
           <label className="flex items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border p-6 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors">
             <Upload size={20} className="text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              {fileName ? fileName : "Drop a .txt, .md, or image file here"}
+              {fileName ? fileName : "Drop a .txt, .md, .pdf, or image file here"}
             </span>
             <input
               type="file"
