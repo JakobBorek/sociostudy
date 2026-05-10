@@ -143,7 +143,7 @@ export default function QuizPage() {
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{evalMarks === 8 ? "Discuss" : "Evaluate"} · {evalMarks} marks</span>
+          <span>Evaluate · {evalMarks} marks</span>
           <span>{evalAnswer.trim().split(/\s+/).filter(Boolean).length} words</span>
         </div>
         <div className="rounded-xl bg-card border border-border p-6">
