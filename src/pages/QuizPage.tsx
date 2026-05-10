@@ -80,7 +80,7 @@ export default function QuizPage() {
   const score = answers.filter((a) => a.isCorrect).length;
 
   const startEval = () => {
-    const pool = EVAL_QUESTIONS[evalMarks];
+    const pool = EVAL_QUESTIONS;
     setEvalQ(pool[Math.floor(Math.random() * pool.length)]);
     setEvalAnswer("");
     setEvalResult(null);
