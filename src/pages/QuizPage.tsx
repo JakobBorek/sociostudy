@@ -9,18 +9,16 @@ import { toast } from "sonner";
 
 type Phase = "setup" | "quiz" | "results" | "eval-setup" | "eval-write" | "eval-result";
 type Mode = "mcq" | "evaluate";
-type EvalMarks = 8 | 14;
+const EVAL_MARKS = 10 as const;
+type EvalMarks = typeof EVAL_MARKS;
 
-const EVAL_QUESTIONS: Record<EvalMarks, { id: string; question: string }[]> = {
-  8: [
-    { id: "d1", question: "Discuss how family functions have changed over time. Your answer should include at least three developed points with evidence." },
-    { id: "d2", question: "Discuss reasons why some students from minority backgrounds may underachieve at school. Your answer should include at least three developed points with evidence." },
-  ],
-  14: [
-    { id: "e1", question: "Evaluate the view that the nuclear family is the best family type for modern society. Include at least three arguments for, three against, and a conclusion." },
-    { id: "e2", question: "Evaluate the view that informal social control is more effective than formal social control. Include at least three arguments for, three against, and a conclusion." },
-  ],
-};
+const EVAL_QUESTIONS: { id: string; question: string }[] = [
+  {
+    id: "e-nuclear",
+    question:
+      "Evaluate the extent to which the nuclear family is the most important type of family structure in modern UK society.",
+  },
+];
 
 interface EvalResult {
   mark: number;
@@ -35,7 +33,7 @@ export default function QuizPage() {
   const [mode, setMode] = useState<Mode>("mcq");
   const [phase, setPhase] = useState<Phase>("setup");
   // evaluate state
-  const [evalMarks, setEvalMarks] = useState<EvalMarks>(8);
+  const evalMarks: EvalMarks = EVAL_MARKS;
   const [evalQ, setEvalQ] = useState<{ id: string; question: string } | null>(null);
   const [evalAnswer, setEvalAnswer] = useState("");
   const [evalLoading, setEvalLoading] = useState(false);
@@ -82,7 +80,7 @@ export default function QuizPage() {
   const score = answers.filter((a) => a.isCorrect).length;
 
   const startEval = () => {
-    const pool = EVAL_QUESTIONS[evalMarks];
+    const pool = EVAL_QUESTIONS;
     setEvalQ(pool[Math.floor(Math.random() * pool.length)]);
     setEvalAnswer("");
     setEvalResult(null);
@@ -123,21 +121,12 @@ export default function QuizPage() {
           <p className="text-sm text-muted-foreground">
             Practice IGCSE Sociology long-answer questions. AI marks your answer using the official Cambridge rubric.
           </p>
-          <div>
-            <label className="text-sm font-medium text-foreground block mb-2">Question type</label>
-            <div className="flex gap-2">
-              {([8, 14] as EvalMarks[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setEvalMarks(m)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    evalMarks === m ? "gradient-amber text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {m === 8 ? "Discuss · 8 marks" : "Evaluate · 14 marks"}
-                </button>
-              ))}
-            </div>
+          <div className="rounded-lg bg-secondary/50 border border-border p-4 space-y-2">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Cambridge IGCSE Sociology · Part (e)</p>
+            <p className="font-display text-lg font-bold text-foreground">Evaluate · 10 marks</p>
+            <p className="text-xs text-muted-foreground">
+              Marked using the official 4-band rubric. Balance (both sides) + reasoned conclusion are needed for Level 3 (8–10).
+            </p>
           </div>
           <button
             onClick={startEval}
@@ -154,7 +143,7 @@ export default function QuizPage() {
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{evalMarks === 8 ? "Discuss" : "Evaluate"} · {evalMarks} marks</span>
+          <span>Evaluate · {evalMarks} marks</span>
           <span>{evalAnswer.trim().split(/\s+/).filter(Boolean).length} words</span>
         </div>
         <div className="rounded-xl bg-card border border-border p-6">

@@ -6,30 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const RUBRIC_8 = `DISCUSS [8 marks] — Cambridge IGCSE Sociology rubric.
-Levels (best fit):
-- L3 7-8: 3 distinct well-developed points, each with sociological concepts/theory + evidence/examples + analysis. Clear paragraphing. 8 if all three equally strong; 7 if one weaker.
-- L2 4-6: Some sociological knowledge, most points have some evidence/analysis, partial development.
-- L1 1-3: Descriptive, vague, little/no evidence or sociological language.
-- 0: no creditable response.
-Do NOT credit evaluation/criticism — question is "Discuss", not "Evaluate".`;
+const RUBRIC_10 = `EVALUATE [10 marks] — Cambridge IGCSE Sociology Part (e) rubric.
+Question style: "Evaluate the extent to which..." (e.g. nuclear family is the most important type of family structure in modern UK society).
 
-const RUBRIC_14 = `EVALUATE [14 marks] — Cambridge IGCSE Sociology rubric.
-Levels (best fit):
-- L4 12-14: 3 developed FOR + 3 developed AGAINST + conclusion with judgement. Strong sociological theory/concepts/sociologists throughout. Balanced.
-- L3 8-11: Both sides covered; 1-2 developed points each side OR mix of developed/partial; some theory; may have conclusion.
-- L2 4-7: Attempts both sides but unbalanced; partial development; limited theory.
-- L1 1-3: Largely one-sided, list-like, minimal evidence, no judgement.
-- 0: no creditable response.
-CRITICAL RULE: A one-sided answer (only FOR or only AGAINST) cannot score higher than 6 marks no matter how good.`;
+Levels (BEST FIT — answer needs MOST qualities of a level, not all):
+- L3 8-10: Strong evaluation. Two+ contrasting perspectives (e.g. functionalist vs feminist). Considers multiple family types (nuclear, extended, lone-parent, same-sex, cohabiting, blended). Specific evidence/research (Murdock, Oakley, Parsons, statistics). Balanced strengths AND limitations. Reasoned, supported conclusion. Accurate sociological terminology. Fluent structure.
+- L2 5-7: Competent. 1-2 perspectives, at least one alternative family type, some evidence (may lack named research), some attempt at balance (may be slightly one-sided), conclusion present but not fully reasoned. Mostly accurate terminology.
+- L1 1-4: Basic. One perspective or superficial. Little/no alternative family types. Few examples. One-sided, no balance. No/unsupported conclusion. Loose terminology.
+- 0: No answer or irrelevant.
+
+CRITICAL RULES:
+1. Best fit, not checklist. Most qualities of a band = that band, even if one element is weaker.
+2. Accept alternative wording (e.g. "functionalists see nuclear family as ideal" = "Murdock argues universal functions").
+3. Balance required for marks ABOVE 5. One-sided answers max out at 5 (top of L2).
+4. Two-sided + conclusion = threshold for 8+ (L3).
+5. Mark for what IS there, no penalty deductions for omissions.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { question, marks, answer } = await req.json();
-    if (!question || !answer || (marks !== 8 && marks !== 14)) {
-      return new Response(JSON.stringify({ error: "Invalid input" }), {
+    if (!question || !answer || marks !== 10) {
+      return new Response(JSON.stringify({ error: "Invalid input — expected marks: 10" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -37,7 +36,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const rubric = marks === 8 ? RUBRIC_8 : RUBRIC_14;
+    const rubric = RUBRIC_10;
     const systemPrompt = `You are a strict Cambridge IGCSE Sociology examiner. Mark the student's answer using this rubric:\n\n${rubric}\n\nBe concise. Keep feedback under 120 words.`;
 
     const userPrompt = `Question (${marks} marks): ${question}\n\nStudent answer:\n${answer}\n\nMark it now.`;
