@@ -9,18 +9,16 @@ import { toast } from "sonner";
 
 type Phase = "setup" | "quiz" | "results" | "eval-setup" | "eval-write" | "eval-result";
 type Mode = "mcq" | "evaluate";
-type EvalMarks = 8 | 14;
+const EVAL_MARKS = 10 as const;
+type EvalMarks = typeof EVAL_MARKS;
 
-const EVAL_QUESTIONS: Record<EvalMarks, { id: string; question: string }[]> = {
-  8: [
-    { id: "d1", question: "Discuss how family functions have changed over time. Your answer should include at least three developed points with evidence." },
-    { id: "d2", question: "Discuss reasons why some students from minority backgrounds may underachieve at school. Your answer should include at least three developed points with evidence." },
-  ],
-  14: [
-    { id: "e1", question: "Evaluate the view that the nuclear family is the best family type for modern society. Include at least three arguments for, three against, and a conclusion." },
-    { id: "e2", question: "Evaluate the view that informal social control is more effective than formal social control. Include at least three arguments for, three against, and a conclusion." },
-  ],
-};
+const EVAL_QUESTIONS: { id: string; question: string }[] = [
+  {
+    id: "e-nuclear",
+    question:
+      "Evaluate the extent to which the nuclear family is the most important type of family structure in modern UK society.",
+  },
+];
 
 interface EvalResult {
   mark: number;
