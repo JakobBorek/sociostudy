@@ -33,7 +33,7 @@ export default function QuizPage() {
   const [mode, setMode] = useState<Mode>("mcq");
   const [phase, setPhase] = useState<Phase>("setup");
   // evaluate state
-  const [evalMarks, setEvalMarks] = useState<EvalMarks>(8);
+  const evalMarks: EvalMarks = EVAL_MARKS;
   const [evalQ, setEvalQ] = useState<{ id: string; question: string } | null>(null);
   const [evalAnswer, setEvalAnswer] = useState("");
   const [evalLoading, setEvalLoading] = useState(false);
