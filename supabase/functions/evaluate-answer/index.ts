@@ -27,8 +27,8 @@ serve(async (req) => {
 
   try {
     const { question, marks, answer } = await req.json();
-    if (!question || !answer || (marks !== 8 && marks !== 14)) {
-      return new Response(JSON.stringify({ error: "Invalid input" }), {
+    if (!question || !answer || marks !== 10) {
+      return new Response(JSON.stringify({ error: "Invalid input — expected marks: 10" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -36,7 +36,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const rubric = marks === 8 ? RUBRIC_8 : RUBRIC_14;
+    const rubric = RUBRIC_10;
     const systemPrompt = `You are a strict Cambridge IGCSE Sociology examiner. Mark the student's answer using this rubric:\n\n${rubric}\n\nBe concise. Keep feedback under 120 words.`;
 
     const userPrompt = `Question (${marks} marks): ${question}\n\nStudent answer:\n${answer}\n\nMark it now.`;
