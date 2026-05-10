@@ -121,21 +121,12 @@ export default function QuizPage() {
           <p className="text-sm text-muted-foreground">
             Practice IGCSE Sociology long-answer questions. AI marks your answer using the official Cambridge rubric.
           </p>
-          <div>
-            <label className="text-sm font-medium text-foreground block mb-2">Question type</label>
-            <div className="flex gap-2">
-              {([8, 14] as EvalMarks[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setEvalMarks(m)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    evalMarks === m ? "gradient-amber text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {m === 8 ? "Discuss · 8 marks" : "Evaluate · 14 marks"}
-                </button>
-              ))}
-            </div>
+          <div className="rounded-lg bg-secondary/50 border border-border p-4 space-y-2">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Cambridge IGCSE Sociology · Part (e)</p>
+            <p className="font-display text-lg font-bold text-foreground">Evaluate · 10 marks</p>
+            <p className="text-xs text-muted-foreground">
+              Marked using the official 4-band rubric. Balance (both sides) + reasoned conclusion are needed for Level 3 (8–10).
+            </p>
           </div>
           <button
             onClick={startEval}
