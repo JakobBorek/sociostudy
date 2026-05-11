@@ -48,10 +48,13 @@ export default function QuizPage() {
   const { addQuizScore, updateStreak } = useProgress();
 
   const startQuiz = () => {
-    // Generate quiz from merged topics (built-in + custom)
-    const filtered = unitFilter ? topics.filter(t => t.unit === unitFilter) : topics;
+    // Filter by section (e.g. "1" → all units starting with "1.") and/or specific unit
+    let filtered = topics;
+    if (sectionFilter) filtered = filtered.filter(t => t.unit.startsWith(`${sectionFilter}.`));
+    if (unitFilter) filtered = filtered.filter(t => t.unit === unitFilter);
     const all = generateQuizFromTopics(filtered);
-    setQuestions(all.slice(0, questionCount));
+    const count = questionCount === "all" ? all.length : questionCount;
+    setQuestions(all.slice(0, count));
     setCurrentQ(0);
     setAnswers([]);
     setSelected(null);
