@@ -227,33 +227,63 @@ export default function QuizPage() {
 
         <div className="rounded-xl bg-card border border-border p-6 space-y-5">
           <div>
-            <label className="text-sm font-medium text-foreground block mb-2">Unit</label>
+            <label className="text-sm font-medium text-foreground block mb-2">Section</label>
+            <div className="flex gap-2">
+              {[
+                { v: "", label: "All" },
+                { v: "1", label: "Section 1" },
+                { v: "2", label: "Section 2" },
+              ].map((opt) => (
+                <button
+                  key={opt.v}
+                  onClick={() => { setSectionFilter(opt.v); setUnitFilter(""); }}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                    sectionFilter === opt.v
+                      ? "gradient-amber text-accent-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Test the whole section, or narrow to a specific unit below.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-2">Unit (optional)</label>
             <select
               value={unitFilter}
               onChange={(e) => setUnitFilter(e.target.value)}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">All Units</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>Unit {u.id} — {u.shortTitle}</option>
-              ))}
+              <option value="">
+                {sectionFilter ? `All units in Section ${sectionFilter}` : "All Units"}
+              </option>
+              {units
+                .filter(u => !sectionFilter || u.id.startsWith(`${sectionFilter}.`))
+                .map((u) => (
+                  <option key={u.id} value={u.id}>Unit {u.id} — {u.shortTitle}</option>
+                ))}
             </select>
           </div>
 
           <div>
             <label className="text-sm font-medium text-foreground block mb-2">Questions</label>
-            <div className="flex gap-2">
-              {[5, 10, 20].map((n) => (
+            <div className="flex gap-2 flex-wrap">
+              {([5, 10, 20, 30, "all"] as const).map((n) => (
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                  className={`flex-1 min-w-[60px] rounded-lg py-2 text-sm font-medium transition-colors ${
                     questionCount === n
                       ? "gradient-amber text-accent-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {n}
+                  {n === "all" ? "All" : n}
                 </button>
               ))}
             </div>
