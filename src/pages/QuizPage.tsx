@@ -38,8 +38,9 @@ export default function QuizPage() {
   const [evalAnswer, setEvalAnswer] = useState("");
   const [evalLoading, setEvalLoading] = useState(false);
   const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<string>(""); // "", "1", "2"
   const [unitFilter, setUnitFilter] = useState<string>("");
-  const [questionCount, setQuestionCount] = useState(10);
+  const [questionCount, setQuestionCount] = useState<number | "all">(10);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
