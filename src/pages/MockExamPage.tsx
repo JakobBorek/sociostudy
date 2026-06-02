@@ -91,9 +91,18 @@ export default function MockExamPage() {
   const toggleUnit = (id: string) =>
     setUnitIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
+  const pickPreset = (id: string, title: string) => {
+    const p = getPresetPaper(id) as unknown as Paper;
+    setUnitIds([id]);
+    setPaper(p);
+    setAnswers({});
+    setGrades({});
+    setExamId(null);
+  };
+
   /* ---------- Load history ---------- */
   useEffect(() => {
-    if (!user) return;
+    if (!user || isFree) return;
     supabase
       .from("mock_exams")
       .select("id, unit_id, unit_title, total_awarded, total_available, status, created_at")
