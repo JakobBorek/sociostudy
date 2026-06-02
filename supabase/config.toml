@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.rewrite-exam-sentence]
 verify_jwt = false
+
+[functions.planning-assistant]
+verify_jwt = false
