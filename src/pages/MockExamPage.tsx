@@ -7,8 +7,11 @@ import { seedDocFromUnit } from "@/lib/notebookSeed";
 import type { Unit, StudyTopic } from "@/data/studyContent";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Sparkles, Pencil, CheckCircle2, RotateCw, ChevronLeft, History } from "lucide-react";
+import { FileText, Loader2, Sparkles, Pencil, CheckCircle2, RotateCw, ChevronLeft, History, Lock, Globe } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAiAccess } from "@/hooks/useAiAccess";
+import { getPresetPaper } from "@/data/presetExams";
+import { AiAccessDialog } from "@/components/AiAccessDialog";
 
 /* ----------------------------- Types ----------------------------- */
 interface Part {
