@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useAuth } from "@/hooks/useAuth";
