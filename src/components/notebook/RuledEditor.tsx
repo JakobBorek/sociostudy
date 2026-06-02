@@ -120,6 +120,8 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
           onAddComment={onAddComment}
           markerColor={markerColor}
           setMarkerColor={setMarkerColor}
+          markerOpacity={markerOpacity}
+          setMarkerOpacity={setMarkerOpacity}
         />
       )}
       <div
