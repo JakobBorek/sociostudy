@@ -234,18 +234,39 @@ export default function MockExamPage() {
             <FileText /> Mock Exam — IGCSE Sociology 0495
           </h1>
           <p className="text-primary-foreground/70 text-sm mt-1">
-            Pick one or more units. We generate a full Paper 1-style mock with real command words and mark tariffs, then mark it like an examiner.
+            {isFree
+              ? "Pick a unit (or the general paper) to open a pre-set Paper 1-style mock with real command words and mark tariffs. Add your own Gemini API key in settings to unlock AI marking."
+              : "Pick one or more units. We generate a full Paper 1-style mock with real command words and mark tariffs, then mark it like an examiner."}
           </p>
         </div>
+
+        {isFree && (
+          <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 flex items-start gap-3">
+            <Lock size={18} className="text-accent mt-0.5 shrink-0" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold">Pre-set practice papers</p>
+              <p className="text-muted-foreground mt-0.5">
+                You're on the free plan — AI generation and AI marking are off. You still get one ready-made Paper 1 mock per unit, plus a general mixed paper. You can write answers and self-mark.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setAiDialogOpen(true)}>
+              Add API key
+            </Button>
+          </div>
+        )}
 
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-lg font-semibold">
-              Choose units {unitIds.length > 0 && <span className="text-muted-foreground text-sm">({unitIds.length} selected)</span>}
+              {isFree
+                ? "Choose a paper"
+                : <>Choose units {unitIds.length > 0 && <span className="text-muted-foreground text-sm">({unitIds.length} selected)</span>}</>}
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => setShowHistory((s) => !s)}>
-              <History size={14} /> {showHistory ? "Hide" : "Past attempts"}
-            </Button>
+            {!isFree && (
+              <Button variant="ghost" size="sm" onClick={() => setShowHistory((s) => !s)}>
+                <History size={14} /> {showHistory ? "Hide" : "Past attempts"}
+              </Button>
+            )}
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {units.map((u) => {
@@ -253,7 +274,7 @@ export default function MockExamPage() {
               return (
                 <button
                   key={u.id}
-                  onClick={() => toggleUnit(u.id)}
+                  onClick={() => (isFree ? pickPreset(u.id, u.title) : toggleUnit(u.id))}
                   className={`text-left rounded-xl border bg-card p-4 card-hover transition ${
                     active ? "ring-2 ring-accent border-accent" : ""
                   }`}
@@ -268,10 +289,23 @@ export default function MockExamPage() {
                 </button>
               );
             })}
+            {isFree && (
+              <button
+                onClick={() => pickPreset("general", "General Mixed Paper")}
+                className="text-left rounded-xl border-2 border-dashed border-accent/50 bg-card p-4 card-hover transition"
+              >
+                <div className="text-3xl mb-2"><Globe size={28} className="text-accent" /></div>
+                <div className="text-xs uppercase text-muted-foreground tracking-wide">General</div>
+                <h3 className="font-display font-semibold text-base mt-1">Mixed Paper 1 Mock</h3>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  A blended practice paper covering theory, identity and inequality.
+                </p>
+              </button>
+            )}
           </div>
         </div>
 
-        {unitIds.length > 0 && (
+        {!isFree && unitIds.length > 0 && (
           <div className="flex justify-end">
             <Button onClick={generate} disabled={generating} size="lg">
               {generating ? <><Loader2 className="animate-spin" size={16} /> Generating paper…</> : <><Sparkles size={16} /> Generate Mock Paper</>}
@@ -279,7 +313,7 @@ export default function MockExamPage() {
           </div>
         )}
 
-        {showHistory && (
+        {!isFree && showHistory && (
           <div className="rounded-xl border bg-card p-4">
             <h3 className="font-semibold mb-2">Your past attempts</h3>
             {history.length === 0 && <p className="text-sm text-muted-foreground">No attempts yet.</p>}
@@ -298,6 +332,8 @@ export default function MockExamPage() {
             </ul>
           </div>
         )}
+
+        <AiAccessDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
       </motion.div>
     );
   }
