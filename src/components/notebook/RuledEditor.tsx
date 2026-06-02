@@ -197,40 +197,10 @@ function Toolbar({
         markerColor={markerColor}
         setMarkerColor={setMarkerColor}
         markerOpacity={markerOpacity}
+        setMarkerOpacity={setMarkerOpacity}
         pickColor={pickColor}
         setCustomColor={setCustomColor}
       />
-        <div className="flex items-center gap-1 ml-1">
-          <span className="text-[10px] text-muted-foreground">Opacity</span>
-          <input
-            type="range"
-            min={10}
-            max={100}
-            step={5}
-            value={Math.round(markerOpacity * 100)}
-            onChange={(e) => setMarkerOpacity(Number(e.target.value) / 100)}
-            className="w-16 accent-accent"
-            title={`Opacity ${Math.round(markerOpacity * 100)}%`}
-          />
-        </div>
-        <button
-          type="button"
-          title="Turn marker off / remove highlight from selection"
-          onClick={() => {
-            const { empty } = editor.state.selection;
-            if (!empty) editor.chain().focus().unsetHighlight().run();
-            setMarkerColor(null);
-          }}
-          className="h-5 w-5 rounded-full border border-border bg-background text-xs flex items-center justify-center"
-        >
-          ✕
-        </button>
-        {markerColor && (
-          <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
-            Marker on
-          </span>
-        )}
-      </div>
       <div className="w-px h-5 bg-border mx-1" />
       {tBtn(editor.isActive("bulletList"), () => editor.chain().focus().toggleBulletList().run(), <List size={16} />, "Bullet list")}
       {tBtn(editor.isActive("orderedList"), () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={16} />, "Numbered list")}
