@@ -5,6 +5,7 @@
 // Output: { paper: PaperJSON }
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 
 const SYSTEM = `You are a Cambridge IGCSE Sociology 0495 Paper 1 examiner and item writer.
@@ -77,6 +78,7 @@ Deno.serve(async (req) => {
       unit_id?: string | string[];
       unit_title?: string | string[];
       topic_context?: string;
+      userGeminiKey?: string;
     }>(req, { maxBytes: 200_000 });
     if (!g.ok) return g.response;
     const idsArr = Array.isArray(g.body.unit_id) ? g.body.unit_id : [g.body.unit_id ?? ""];
