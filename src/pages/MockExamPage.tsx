@@ -124,8 +124,8 @@ export default function MockExamPage() {
       return;
     }
     setPaper(data.paper as unknown as Paper);
-    setAnswers((data.answers as Record<string, string>) ?? {});
-    setGrades((data.grades as GradeMap) ?? {});
+    setAnswers((data.answers as unknown as Record<string, string>) ?? {});
+    setGrades((data.grades as unknown as GradeMap) ?? {});
     setExamId(data.id);
     setUnitIds(String(data.unit_id).split(","));
     setShowHistory(false);
