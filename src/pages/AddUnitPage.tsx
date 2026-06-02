@@ -254,7 +254,17 @@ export default function AddUnitPage() {
             </>
           )}
         </button>
+        {mode === "free" && (
+          <p className="text-xs text-muted-foreground text-center">
+            AI extraction is locked.{" "}
+            <button onClick={() => setAiDialogOpen(true)} className="text-primary underline">
+              Add your Gemini key
+            </button>{" "}
+            to unlock.
+          </p>
+        )}
       </motion.div>
+      <AiAccessDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
     </div>
   );
 }
