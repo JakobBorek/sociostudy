@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
 
 const RUBRIC_10 = `EVALUATE [10 marks] — Cambridge IGCSE Sociology Part (e) rubric.
 Question style: "Evaluate the extent to which..." (e.g. nuclear family is the most important type of family structure in modern UK society).
@@ -26,12 +21,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { question, marks, answer } = await req.json();
+    const g = await guard<{ question?: string; marks?: number; answer?: string }>(req, { maxBytes: 32_000 });
+    if (!g.ok) return g.response;
+    const question = String(g.body.question ?? "").slice(0, 2000);
+    const answer = String(g.body.answer ?? "").slice(0, 8000);
+    const marks = Number(g.body.marks ?? 0);
     if (!question || !answer || marks !== 10) {
       return new Response(JSON.stringify({ error: "Invalid input — expected marks: 10" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

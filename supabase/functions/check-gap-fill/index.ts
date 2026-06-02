@@ -2,10 +2,7 @@
 // Input: { items: [{ id, expected, user_answer, context }] }
 // Output: { results: [{ id, correct, reason }] }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
 
 interface Item {
   id: string;
@@ -18,13 +15,29 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { items } = (await req.json()) as { items: Item[] };
+    const g = await guard<{ items: Item[] }>(req, { maxBytes: 200_000 });
+    if (!g.ok) return g.response;
+    let { items } = g.body;
     if (!Array.isArray(items) || items.length === 0) {
       return new Response(JSON.stringify({ error: "No items" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (items.length > 200) {
+      return new Response(JSON.stringify({ error: "Too many items (max 200)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const clip = (s: unknown, n: number) => String(s ?? "").slice(0, n);
+    items = items.map((it) => ({
+      id: clip(it.id, 100),
+      expected: clip(it.expected, 200),
+      user_answer: clip(it.user_answer, 200),
+      context: clip(it.context, 1000),
+    }));
+
 
     // Fast-path obvious matches locally; only send the ambiguous ones to AI.
     const norm = (s: string) =>

@@ -3,15 +3,33 @@
 // Input: { question_prompt, command, marks, original_answer, sentence, topic_context }
 // Output: { rewrite: string }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { question_prompt, command, marks, original_answer, sentence, topic_context } = await req.json();
+    const g = await guard<{
+      question_prompt?: string;
+      command?: string;
+      marks?: number;
+      original_answer?: string;
+      sentence?: string;
+      topic_context?: string;
+    }>(req, { maxBytes: 64_000 });
+    if (!g.ok) return g.response;
+    const clip = (s: unknown, n: number) => String(s ?? "").slice(0, n);
+    const question_prompt = clip(g.body.question_prompt, 1000);
+    const command = clip(g.body.command, 40);
+    const marks = Number(g.body.marks ?? 0);
+    const original_answer = clip(g.body.original_answer, 8000);
+    const sentence = clip(g.body.sentence, 1500);
+    const topic_context = clip(g.body.topic_context, 4000);
+    if (!sentence || !question_prompt) {
+      return new Response(JSON.stringify({ error: "Missing sentence or question_prompt" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 

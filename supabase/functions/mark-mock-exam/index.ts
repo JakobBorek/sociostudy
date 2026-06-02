@@ -2,10 +2,8 @@
 // Input: { paper, answers: { [partId]: string }, topic_context }
 // Output: { grades: { [partId]: { awarded, marks, command, reason, sentences: [{text,issue}] } }, total_awarded, total_available }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
+
 
 const SYSTEM = `You are a senior Cambridge IGCSE Sociology 0495 examiner.
 You mark answers using levels-of-response mark schemes appropriate to the command word and tariff:
@@ -20,16 +18,29 @@ Output STRICT JSON only.`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { paper, answers, topic_context } = await req.json();
+    const g = await guard<{ paper?: any; answers?: Record<string, string>; topic_context?: string }>(
+      req,
+      { maxBytes: 500_000 },
+    );
+    if (!g.ok) return g.response;
+    const { paper, answers } = g.body;
+    const topic_context = String(g.body.topic_context ?? "").slice(0, 8000);
+    // Clip individual answers to prevent abuse
+    const trimmedAnswers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(answers ?? {})) {
+      trimmedAnswers[String(k).slice(0, 50)] = String(v ?? "").slice(0, 10_000);
+    }
+    const safeAnswers = trimmedAnswers;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
+
 
     // Flatten the parts the student actually answered.
     const items: { id: string; label: string; command: string; marks: number; prompt: string; source?: string; answer: string }[] = [];
     for (const q of paper?.questions ?? []) {
       const src = q?.source ? `${q.source.title || "Source"}: ${q.source.text || ""}` : undefined;
       for (const p of q?.parts ?? []) {
-        const a = (answers?.[p.id] ?? "").trim();
+        const a = (safeAnswers?.[p.id] ?? "").trim();
         if (!a) continue;
         items.push({ id: p.id, label: p.label, command: p.command, marks: p.marks, prompt: p.prompt, source: src, answer: a });
       }

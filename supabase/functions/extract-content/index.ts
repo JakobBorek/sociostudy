@@ -1,17 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { content, unitTitle, unitIcon } = await req.json();
+    const g = await guard<{ content?: string; unitTitle?: string; unitIcon?: string }>(req, { maxBytes: 500_000 });
+    if (!g.ok) return g.response;
+    const content = String(g.body.content ?? "").slice(0, 100_000);
+    const unitTitle = String(g.body.unitTitle ?? "").slice(0, 200);
+    if (!content) {
+      return new Response(JSON.stringify({ error: "Missing content" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = `You are a study content extractor. Given raw study notes, extract structured study topics.
