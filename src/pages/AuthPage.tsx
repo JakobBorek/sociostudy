@@ -49,6 +49,16 @@ export default function AuthPage() {
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const emailLower = email.trim().toLowerCase();
+    const allowed = ALWAYS_ALLOWED.includes(emailLower) || accessCode === SITE_PASSWORD;
+    if (!allowed) {
+      setRequested(true);
+      toast({
+        title: "Access request received",
+        description: "Your request to join SocioStudy has been noted. The site owner will review it.",
+      });
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.signUp({
       email,
