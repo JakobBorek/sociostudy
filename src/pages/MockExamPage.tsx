@@ -616,12 +616,23 @@ function PartView({
                           <Lightbulb size={12} /> Suggested rewrite
                         </span>
                         <span className="block italic text-foreground mb-2">{sug.text}</span>
-                        <span className="flex gap-1">
+                        <span className="flex flex-wrap gap-1 items-center">
                           <Button size="sm" variant="default" className="h-7 px-2 text-xs" onClick={() => applySuggestion(s, sug.text)}>
                             <Check size={12} /> Apply
                           </Button>
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => dismissSuggestion(s)}>
                             <X size={12} /> Dismiss
+                          </Button>
+                          <span className="mx-1 h-4 w-px bg-border" />
+                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Tune:</span>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "simpler", previous: sug.text })}>
+                            Simpler
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "shorter", previous: sug.text })}>
+                            Shorter
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "longer", previous: sug.text })}>
+                            Longer
                           </Button>
                         </span>
                       </span>
