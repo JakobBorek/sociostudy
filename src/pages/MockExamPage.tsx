@@ -263,7 +263,11 @@ export default function MockExamPage() {
   };
 
   /* ---------- Suggest a rewrite for one sentence (returns text, doesn't apply) ---------- */
-  const suggest = async (part: Part, sentence: string): Promise<string> => {
+  const suggest = async (
+    part: Part,
+    sentence: string,
+    opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string },
+  ): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-exam-sentence", {
         body: {
@@ -273,6 +277,8 @@ export default function MockExamPage() {
           original_answer: answers[part.id] ?? "",
           sentence,
           topic_context: context,
+          tune: opts?.tune,
+          previous: opts?.previous,
         },
       });
       if (error) throw error;
@@ -461,7 +467,7 @@ export default function MockExamPage() {
                   value={answers[p.id] ?? ""}
                   onChange={(v) => setAnswers((a) => ({ ...a, [p.id]: v }))}
                   grade={grades[p.id]}
-                  onSuggest={(s) => suggest(p, s)}
+                  onSuggest={(s, opts) => suggest(p, s, opts)}
                 />
               ))}
             </ol>
@@ -513,7 +519,7 @@ function PartView({
   value: string;
   onChange: (v: string) => void;
   grade?: Grade;
-  onSuggest: (sentence: string) => Promise<string>;
+  onSuggest: (sentence: string, opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string }) => Promise<string>;
 }) {
   const flagged = new Map<string, string>();
   for (const s of grade?.sentences ?? []) flagged.set(s.text.trim(), s.issue);
@@ -525,9 +531,12 @@ function PartView({
   const [suggestions, setSuggestions] = useState<Record<string, { text: string; loading: boolean }>>({});
   const [history, setHistory] = useState<string[]>([]);
 
-  const requestSuggestion = async (sentence: string) => {
+  const requestSuggestion = async (
+    sentence: string,
+    opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string },
+  ) => {
     setSuggestions((m) => ({ ...m, [sentence]: { text: m[sentence]?.text ?? "", loading: true } }));
-    const text = await onSuggest(sentence);
+    const text = await onSuggest(sentence, opts);
     setSuggestions((m) => ({ ...m, [sentence]: { text, loading: false } }));
   };
 
@@ -607,12 +616,23 @@ function PartView({
                           <Lightbulb size={12} /> Suggested rewrite
                         </span>
                         <span className="block italic text-foreground mb-2">{sug.text}</span>
-                        <span className="flex gap-1">
+                        <span className="flex flex-wrap gap-1 items-center">
                           <Button size="sm" variant="default" className="h-7 px-2 text-xs" onClick={() => applySuggestion(s, sug.text)}>
                             <Check size={12} /> Apply
                           </Button>
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => dismissSuggestion(s)}>
                             <X size={12} /> Dismiss
+                          </Button>
+                          <span className="mx-1 h-4 w-px bg-border" />
+                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Tune:</span>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "simpler", previous: sug.text })}>
+                            Simpler
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "shorter", previous: sug.text })}>
+                            Shorter
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => requestSuggestion(s, { tune: "longer", previous: sug.text })}>
+                            Longer
                           </Button>
                         </span>
                       </span>
