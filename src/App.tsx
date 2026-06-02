@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StudyDataProvider } from "@/contexts/StudyDataContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import RequireAuth from "@/components/RequireAuth";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import FlashcardsPage from "@/pages/FlashcardsPage";
@@ -12,6 +14,8 @@ import UnitsPage from "@/pages/UnitsPage";
 import UnitDetail from "@/pages/UnitDetail";
 import AddUnitPage from "@/pages/AddUnitPage";
 import ExamTechniquePage from "@/pages/ExamTechniquePage";
+import NotebookPage from "@/pages/NotebookPage";
+import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -22,20 +26,33 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <StudyDataProvider>
-          <Layout>
+        <AuthProvider>
+          <StudyDataProvider>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/flashcards" element={<FlashcardsPage />} />
-              <Route path="/quiz" element={<QuizPage />} />
-              <Route path="/units" element={<UnitsPage />} />
-              <Route path="/units/:unitId" element={<UnitDetail />} />
-              <Route path="/add-unit" element={<AddUnitPage />} />
-              <Route path="/exam-technique" element={<ExamTechniquePage />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route
+                path="/*"
+                element={
+                  <RequireAuth>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/flashcards" element={<FlashcardsPage />} />
+                        <Route path="/quiz" element={<QuizPage />} />
+                        <Route path="/units" element={<UnitsPage />} />
+                        <Route path="/units/:unitId" element={<UnitDetail />} />
+                        <Route path="/add-unit" element={<AddUnitPage />} />
+                        <Route path="/exam-technique" element={<ExamTechniquePage />} />
+                        <Route path="/notebook" element={<NotebookPage />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Layout>
+                  </RequireAuth>
+                }
+              />
             </Routes>
-          </Layout>
-        </StudyDataProvider>
+          </StudyDataProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

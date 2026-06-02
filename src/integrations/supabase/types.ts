@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      annotations: {
+        Row: {
+          color: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          range_from: number
+          range_to: number
+          text: string | null
+          type: string
+          unit_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          range_from: number
+          range_to: number
+          text?: string | null
+          type: string
+          unit_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          range_from?: number
+          range_to?: number
+          text?: string | null
+          type?: string
+          unit_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exam_attempts: {
+        Row: {
+          answer: string | null
+          created_at: string
+          feedback: string | null
+          id: string
+          marks: number | null
+          question_id: string | null
+          question_text: string | null
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          marks?: number | null
+          question_id?: string | null
+          question_text?: string | null
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          marks?: number | null
+          question_id?: string | null
+          question_text?: string | null
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flashcard_progress: {
+        Row: {
+          id: string
+          reviewed_at: string
+          status: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reviewed_at?: string
+          status: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reviewed_at?: string
+          status?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gap_fill_answers: {
+        Row: {
+          answers: Json
+          id: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          id?: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          id?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notebook_pages: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          position: number
+          unit_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          position?: number
+          unit_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          position?: number
+          unit_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
