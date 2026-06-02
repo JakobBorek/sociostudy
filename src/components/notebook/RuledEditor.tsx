@@ -7,18 +7,27 @@ import { useEffect, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Highlighter,
   List, ListOrdered, Heading1, Heading2, Heading3, MessageSquarePlus,
+  Undo2, Redo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Word-style 15-colour highlight palette (5 per row × 3 rows)
 const HIGHLIGHT_COLORS = [
-  { name: "Yellow", value: "#fff3a3" },
-  { name: "Green", value: "#bdf2c9" },
-  { name: "Pink", value: "#ffc4dd" },
-  { name: "Blue", value: "#c4dcff" },
-  { name: "Orange", value: "#ffd8a3" },
-  { name: "Purple", value: "#e0c4ff" },
-  { name: "Red", value: "#ffc4c4" },
-  { name: "Teal", value: "#c4fff0" },
+  { name: "Yellow", value: "#FFFF00" },
+  { name: "Bright Green", value: "#7CFC00" },
+  { name: "Turquoise", value: "#80FFFF" },
+  { name: "Pink", value: "#FF40FF" },
+  { name: "Blue", value: "#0000FF" },
+  { name: "Red", value: "#E53935" },
+  { name: "Dark Blue", value: "#000080" },
+  { name: "Teal", value: "#3F8C99" },
+  { name: "Green", value: "#2E7D32" },
+  { name: "Violet", value: "#7B1FA2" },
+  { name: "Dark Red", value: "#7A1410" },
+  { name: "Olive", value: "#808000" },
+  { name: "Gray", value: "#8C8C8C" },
+  { name: "Light Gray", value: "#C7C7C7" },
+  { name: "Black", value: "#000000" },
 ];
 
 interface Props {
