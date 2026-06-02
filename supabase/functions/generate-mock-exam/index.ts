@@ -73,20 +73,28 @@ Rules:
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const g = await guard<{ unit_id?: string; unit_title?: string; topic_context?: string }>(req, { maxBytes: 64_000 });
+    const g = await guard<{
+      unit_id?: string | string[];
+      unit_title?: string | string[];
+      topic_context?: string;
+    }>(req, { maxBytes: 200_000 });
     if (!g.ok) return g.response;
-    const unit_id = String(g.body.unit_id ?? "").slice(0, 100);
-    const unit_title = String(g.body.unit_title ?? "").slice(0, 200);
-    const topic_context = String(g.body.topic_context ?? "").slice(0, 12_000);
+    const idsArr = Array.isArray(g.body.unit_id) ? g.body.unit_id : [g.body.unit_id ?? ""];
+    const titlesArr = Array.isArray(g.body.unit_title) ? g.body.unit_title : [g.body.unit_title ?? ""];
+    const unit_id = idsArr.filter(Boolean).join(", ").slice(0, 300);
+    const unit_title = titlesArr.filter(Boolean).join(" + ").slice(0, 400);
+    const topic_context = String(g.body.topic_context ?? "").slice(0, 24_000);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
+    const multi = idsArr.filter(Boolean).length > 1;
+    const user = `Units: ${unit_id} — ${unit_title}
 
-    const user = `Unit: ${unit_id} — ${unit_title}
+${multi ? "The student picked MULTIPLE units. Draw Question 2 from one unit and Question 3 from a different unit. Question 1 (research methods) may use any of them." : ""}
 
 Unit notes / topic content the student has studied:
 """
-${(topic_context || "").slice(0, 6000)}
+${topic_context.slice(0, 16000)}
 """
 
 ${SCHEMA_PROMPT}`;
