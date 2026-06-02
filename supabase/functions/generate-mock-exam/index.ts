@@ -4,10 +4,8 @@
 // Input: { unit_id: string, unit_title: string, topic_context: string }
 // Output: { paper: PaperJSON }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
+
 
 const SYSTEM = `You are a Cambridge IGCSE Sociology 0495 Paper 1 examiner and item writer.
 You write authentic exam questions in EXACTLY the official format and mark tariffs.
