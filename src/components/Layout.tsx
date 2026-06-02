@@ -18,6 +18,7 @@ const navItems = [
   { to: "/flashcards", label: "Flashcards", icon: Layers },
   { to: "/quiz", label: "Quiz", icon: Brain },
   { to: "/exam-technique", label: "Exam Skills", icon: GraduationCap },
+  { to: "/mock-exam", label: "Mock Exam", icon: FileText },
   { to: "/add-unit", label: "Add Unit", icon: PlusCircle },
 ];
 
