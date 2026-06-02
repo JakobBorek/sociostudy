@@ -507,19 +507,56 @@ function PartView({
   value,
   onChange,
   grade,
-  onRewrite,
+  onSuggest,
 }: {
   part: Part;
   value: string;
   onChange: (v: string) => void;
   grade?: Grade;
-  onRewrite: (sentence: string) => void;
+  onSuggest: (sentence: string) => Promise<string>;
 }) {
   const flagged = new Map<string, string>();
   for (const s of grade?.sentences ?? []) flagged.set(s.text.trim(), s.issue);
   const sentences = grade ? splitSentences(value) : [];
 
   const rows = Math.min(12, Math.max(2, Math.ceil((part.marks * 1.5))));
+
+  // Per-sentence suggestion state + undo history of prior `value`s.
+  const [suggestions, setSuggestions] = useState<Record<string, { text: string; loading: boolean }>>({});
+  const [history, setHistory] = useState<string[]>([]);
+
+  const requestSuggestion = async (sentence: string) => {
+    setSuggestions((m) => ({ ...m, [sentence]: { text: m[sentence]?.text ?? "", loading: true } }));
+    const text = await onSuggest(sentence);
+    setSuggestions((m) => ({ ...m, [sentence]: { text, loading: false } }));
+  };
+
+  const applySuggestion = (sentence: string, rewrite: string) => {
+    if (!rewrite) return;
+    setHistory((h) => [...h, value]);
+    const next = value.includes(sentence) ? value.replace(sentence, rewrite) : `${value} ${rewrite}`.trim();
+    onChange(next);
+    setSuggestions((m) => {
+      const { [sentence]: _, ...rest } = m;
+      return rest;
+    });
+  };
+
+  const dismissSuggestion = (sentence: string) => {
+    setSuggestions((m) => {
+      const { [sentence]: _, ...rest } = m;
+      return rest;
+    });
+  };
+
+  const undo = () => {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      onChange(prev);
+      return h.slice(0, -1);
+    });
+  };
 
   return (
     <li className="space-y-2">
@@ -550,6 +587,7 @@ function PartView({
               sentences.map((s, i) => {
                 const issue = flagged.get(s) ?? flagged.get(s.replace(/[.!?]$/, ""));
                 if (!issue) return <span key={i}>{s} </span>;
+                const sug = suggestions[s];
                 return (
                   <span key={i} className="inline">
                     <span className="underline decoration-destructive decoration-wavy underline-offset-4" title={issue}>
@@ -557,29 +595,42 @@ function PartView({
                     </span>
                     <button
                       type="button"
-                      onClick={() => onRewrite(s)}
+                      onClick={() => requestSuggestion(s)}
                       title={`Suggest edit: ${issue}`}
                       className="inline-flex items-center justify-center align-baseline mx-1 h-5 w-5 rounded-full bg-accent text-accent-foreground hover:scale-110 transition"
                     >
-                      <Pencil size={11} />
+                      {sug?.loading ? <Loader2 size={11} className="animate-spin" /> : <Pencil size={11} />}
                     </button>{" "}
+                    {sug && !sug.loading && sug.text && (
+                      <span className="block my-2 rounded-md border border-accent/40 bg-accent/5 p-2 text-xs font-sans not-italic">
+                        <span className="flex items-center gap-1 text-accent font-semibold mb-1">
+                          <Lightbulb size={12} /> Suggested rewrite
+                        </span>
+                        <span className="block italic text-foreground mb-2">{sug.text}</span>
+                        <span className="flex gap-1">
+                          <Button size="sm" variant="default" className="h-7 px-2 text-xs" onClick={() => applySuggestion(s, sug.text)}>
+                            <Check size={12} /> Apply
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => dismissSuggestion(s)}>
+                            <X size={12} /> Dismiss
+                          </Button>
+                        </span>
+                      </span>
+                    )}
                   </span>
                 );
               })
             )}
           </div>
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between text-xs gap-2">
             <span className={`font-semibold ${grade.awarded === grade.marks ? "text-success" : "text-destructive"}`}>
               {grade.awarded} / {grade.marks} — {grade.reason}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onChange(value)} /* trigger re-render */
-              className="text-xs"
-              tabIndex={-1}
-              aria-hidden
-            />
+            {history.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={undo}>
+                <Undo2 size={12} /> Revert last change ({history.length})
+              </Button>
+            )}
           </div>
           {/* Re-edit answer */}
           <Textarea
