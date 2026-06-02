@@ -16,8 +16,13 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [requested, setRequested] = useState(false);
+
+  const SITE_PASSWORD = "Geschichte01!";
+  const ALWAYS_ALLOWED = ["jakob.borek@gmail.com"];
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -44,6 +49,16 @@ export default function AuthPage() {
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const emailLower = email.trim().toLowerCase();
+    const allowed = ALWAYS_ALLOWED.includes(emailLower) || accessCode === SITE_PASSWORD;
+    if (!allowed) {
+      setRequested(true);
+      toast({
+        title: "Access request received",
+        description: "Your request to join SocioStudy has been noted. The site owner will review it.",
+      });
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -114,8 +129,26 @@ export default function AuthPage() {
                 <Label htmlFor="su-pw">Password</Label>
                 <Input id="su-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
+              <div>
+                <Label htmlFor="su-code">Access code</Label>
+                <Input
+                  id="su-code"
+                  type="password"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="Site access code"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This site is private. Enter the access code to create an account, or submit without one to request access.
+                </p>
+              </div>
+              {requested && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
+                  Your access request has been noted. You'll be let in once the site owner approves you.
+                </div>
+              )}
               <Button type="submit" disabled={busy} className="w-full">
-                {busy ? "Creating account…" : "Create account"}
+                {busy ? "Creating account…" : accessCode || ALWAYS_ALLOWED.includes(email.trim().toLowerCase()) ? "Create account" : "Request access"}
               </Button>
             </form>
           </TabsContent>
