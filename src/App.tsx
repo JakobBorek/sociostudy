@@ -16,6 +16,7 @@ import AddUnitPage from "@/pages/AddUnitPage";
 import ExamTechniquePage from "@/pages/ExamTechniquePage";
 import NotebookPage from "@/pages/NotebookPage";
 import ProvePage from "@/pages/ProvePage";
+import MockExamPage from "@/pages/MockExamPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound.tsx";
 
