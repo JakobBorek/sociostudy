@@ -108,9 +108,29 @@ export default function MockExamPage() {
       .select("id, unit_id, unit_title, total_awarded, total_available, status, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(20)
+      .limit(50)
       .then(({ data }) => setHistory(data ?? []));
   }, [user, examId, grades]);
+
+  /* ---------- Reopen a past attempt ---------- */
+  const openAttempt = async (id: string) => {
+    const { data, error } = await supabase
+      .from("mock_exams")
+      .select("id, unit_id, paper, answers, grades")
+      .eq("id", id)
+      .single();
+    if (error || !data) {
+      toast({ title: "Couldn't load attempt", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setPaper(data.paper as unknown as Paper);
+    setAnswers((data.answers as unknown as Record<string, string>) ?? {});
+    setGrades((data.grades as unknown as GradeMap) ?? {});
+    setExamId(data.id);
+    setUnitIds(String(data.unit_id).split(","));
+    setShowHistory(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   /* ---------- Generate paper ---------- */
   const generate = async () => {
@@ -319,14 +339,19 @@ export default function MockExamPage() {
             {history.length === 0 && <p className="text-sm text-muted-foreground">No attempts yet.</p>}
             <ul className="divide-y">
               {history.map((h) => (
-                <li key={h.id} className="py-2 flex justify-between items-center text-sm">
-                  <div>
-                    <div className="font-medium">Unit {h.unit_id} — {h.unit_title}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString()}</div>
-                  </div>
-                  <div className="font-semibold">
-                    {h.status === "marked" ? `${h.total_awarded ?? 0} / ${h.total_available ?? 0}` : "Unmarked"}
-                  </div>
+                <li key={h.id}>
+                  <button
+                    onClick={() => openAttempt(h.id)}
+                    className="w-full py-2 flex justify-between items-center text-sm text-left hover:bg-muted/50 rounded px-2 transition"
+                  >
+                    <div>
+                      <div className="font-medium">Unit {h.unit_id} — {h.unit_title}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="font-semibold">
+                      {h.status === "marked" ? `${h.total_awarded ?? 0} / ${h.total_available ?? 0}` : "Unmarked"}
+                    </div>
+                  </button>
                 </li>
               ))}
             </ul>
