@@ -162,6 +162,9 @@ function Toolbar({
 
   return (
     <div className="sticky top-16 z-10 flex flex-wrap items-center gap-1 rounded-lg border bg-card/95 backdrop-blur px-2 py-1.5 shadow-sm">
+      {tBtn(false, () => editor.chain().focus().undo().run(), <Undo2 size={16} />, "Undo")}
+      {tBtn(false, () => editor.chain().focus().redo().run(), <Redo2 size={16} />, "Redo")}
+      <div className="w-px h-5 bg-border mx-1" />
       {tBtn(editor.isActive("heading", { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), <Heading1 size={16} />, "H1")}
       {tBtn(editor.isActive("heading", { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 size={16} />, "H2")}
       {tBtn(editor.isActive("heading", { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), <Heading3 size={16} />, "H3")}
@@ -170,27 +173,29 @@ function Toolbar({
       {tBtn(editor.isActive("italic"), () => editor.chain().focus().toggleItalic().run(), <Italic size={16} />, "Italic")}
       {tBtn(editor.isActive("underline"), () => editor.chain().focus().toggleUnderline().run(), <UnderlineIcon size={16} />, "Underline")}
       <div className="w-px h-5 bg-border mx-1" />
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1.5">
         <Highlighter
           size={14}
           className={markerColor ? "text-accent" : "text-muted-foreground"}
           style={markerColor ? { color: markerColor } : undefined}
         />
-        {HIGHLIGHT_COLORS.map((c) => {
-          const active = markerColor === c.value;
-          return (
-            <button
-              key={c.value}
-              type="button"
-              title={active ? `Marker on — ${c.name} (click to turn off)` : `Marker: ${c.name}`}
-              onClick={() => pickColor(c.value)}
-              className={`h-5 w-5 rounded-full border transition hover:scale-110 ${
-                active ? "ring-2 ring-offset-1 ring-accent border-accent scale-110" : "border-border"
-              }`}
-              style={{ background: c.value }}
-            />
-          );
-        })}
+        <div className="grid grid-cols-5 gap-0.5">
+          {HIGHLIGHT_COLORS.map((c) => {
+            const active = markerColor === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                title={active ? `Marker on — ${c.name} (click to turn off)` : `Marker: ${c.name}`}
+                onClick={() => pickColor(c.value)}
+                className={`h-4 w-4 rounded-sm border transition hover:scale-110 ${
+                  active ? "ring-2 ring-offset-1 ring-accent border-accent scale-110" : "border-border/60"
+                }`}
+                style={{ background: c.value }}
+              />
+            );
+          })}
+        </div>
         <button
           type="button"
           title="Turn marker off / remove highlight from selection"
@@ -199,7 +204,7 @@ function Toolbar({
             if (!empty) editor.chain().focus().unsetHighlight().run();
             setMarkerColor(null);
           }}
-          className="h-5 w-5 rounded-full border border-border bg-background text-xs"
+          className="h-5 w-5 rounded-full border border-border bg-background text-xs flex items-center justify-center"
         >
           ✕
         </button>
