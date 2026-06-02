@@ -108,9 +108,29 @@ export default function MockExamPage() {
       .select("id, unit_id, unit_title, total_awarded, total_available, status, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(20)
+      .limit(50)
       .then(({ data }) => setHistory(data ?? []));
   }, [user, examId, grades]);
+
+  /* ---------- Reopen a past attempt ---------- */
+  const openAttempt = async (id: string) => {
+    const { data, error } = await supabase
+      .from("mock_exams")
+      .select("id, unit_id, paper, answers, grades")
+      .eq("id", id)
+      .single();
+    if (error || !data) {
+      toast({ title: "Couldn't load attempt", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setPaper(data.paper as unknown as Paper);
+    setAnswers((data.answers as Record<string, string>) ?? {});
+    setGrades((data.grades as GradeMap) ?? {});
+    setExamId(data.id);
+    setUnitIds(String(data.unit_id).split(","));
+    setShowHistory(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   /* ---------- Generate paper ---------- */
   const generate = async () => {
