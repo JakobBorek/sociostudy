@@ -83,7 +83,8 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
       if (!color) return;
       const { from, to, empty } = editor.state.selection;
       if (empty || from === to) return;
-      editor.chain().setHighlight({ color }).setTextSelection(to).run();
+      const applied = hexToRgba(color, markerOpacityRef.current);
+      editor.chain().setHighlight({ color: applied }).setTextSelection(to).run();
     };
     const onMouseUp = () => setTimeout(applyIfSelected, 0);
     const onKeyUp = (e: KeyboardEvent) => {
