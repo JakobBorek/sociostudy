@@ -47,6 +47,7 @@ const App = () => (
                         <Route path="/exam-technique" element={<ExamTechniquePage />} />
                         <Route path="/notebook" element={<NotebookPage />} />
                         <Route path="/prove" element={<ProvePage />} />
+                        <Route path="/mock-exam" element={<MockExamPage />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Layout>
