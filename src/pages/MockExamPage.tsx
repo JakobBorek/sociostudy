@@ -262,8 +262,8 @@ export default function MockExamPage() {
     }
   };
 
-  /* ---------- Rewrite a sentence ---------- */
-  const rewrite = async (part: Part, sentence: string) => {
+  /* ---------- Suggest a rewrite for one sentence (returns text, doesn't apply) ---------- */
+  const suggest = async (part: Part, sentence: string): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-exam-sentence", {
         body: {
@@ -276,16 +276,10 @@ export default function MockExamPage() {
         },
       });
       if (error) throw error;
-      const rw = ((data as any).rewrite ?? "").trim();
-      if (!rw) return;
-      setAnswers((a) => {
-        const cur = a[part.id] ?? "";
-        const next = cur.includes(sentence) ? cur.replace(sentence, rw) : `${cur} ${rw}`.trim();
-        return { ...a, [part.id]: next };
-      });
-      toast({ title: "Suggested edit applied", description: "Reread it then Re-analyze." });
+      return ((data as any).rewrite ?? "").trim();
     } catch (e) {
-      toast({ title: "Couldn't rewrite", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Couldn't suggest", description: (e as Error).message, variant: "destructive" });
+      return "";
     }
   };
 
