@@ -1,31 +1,55 @@
-## Goal
+## SocioStudy: Accounts + Notebook Expansion
 
-Add **Unit 3.1 — What is social stratification?** to the built-in study content, sourced from the uploaded `3.1.pdf` (Cambridge IGCSE Sociology coursebook, Unit 3, section 3.1). Once added, it will automatically appear in Units, Flashcards, Quiz (including the new Section filter — picking "Section 3" will work for free), Dashboard progress, and Exam Skills practice.
+Big scope — splitting into clear phases. Existing features (units, flashcards, quizzes, exam skills) stay untouched; we extend.
 
-## What the PDF covers
+### Phase 1 — Auth & Cloud Persistence
+- Enable Supabase email/password auth (no auto-confirm, with "stay logged in" checkbox controlling session persistence).
+- Add `/auth` page (sign in / sign up tabs) and a user menu in the header (avatar + sign out).
+- Protect app routes behind auth (redirect to `/auth` if no session).
+- New DB tables (all RLS-scoped to `auth.uid()`):
+  - `profiles` (user_id, display_name)
+  - `notebook_pages` (user_id, unit_id, content JSONB — TipTap doc) — one editable page per unit
+  - `annotations` (user_id, unit_id, type: highlight|underline|comment, range, color, text)
+  - `gap_fill_answers` (user_id, topic_id, answers JSONB)
+  - `exam_attempts` (user_id, question_id, answer, score, feedback, created_at)
+- Migrate existing localStorage progress (`useProgress`, custom units) → keep local fallback, sync to cloud when logged in.
 
-Section 3.1 introduces social stratification and inequality. Key concepts include:
+### Phase 2 — "IGCSE (0495)" rename
+- Global find/replace of "A-Level" / "A Level" → "IGCSE (0495)" across pages, headings, meta.
 
-- Social stratification, social inequality, social differentiation
-- Open vs closed societies
-- Status: ascribed vs achieved
-- Power, life chances, meritocracy
-- Poverty: absolute vs relative, poverty trap, wealth
-- Modern slavery & human trafficking
-- Stratification by age, gender (patriarchy, gendered division of labour), ethnicity (cultural racism), social class
-- Capitalism
-- The Indian caste system (closed-society example)
+### Phase 3 — Notebook section (new nav item 📓 Notebook)
+Route `/notebook` with two tabs:
+- **Sources tab**: grid of all units (built-in + custom) with "Add to notebook" → seeds that unit's notebook page with generated prose from its topics.
+- **Notebook tab**: single continuous scroll of all unit pages in order, each rendered as a ruled-notebook page.
 
-## Plan
+### Phase 4 — Notebook editor (ruled paper + rich text + annotations)
+- TipTap editor (already a sensible React fit) with:
+  - Ruled-paper CSS: white page, faint blue horizontal lines (`repeating-linear-gradient`), 28px line-height locked to grid, comfortable serif/sans body.
+  - Toolbar: H1/H2/H3, bold, italic, bullet list, numbered list.
+  - Custom marks: `highlight` (color picker: yellow/green/pink/blue), `underline`.
+  - Comment system: select text → "Add comment" → stores annotation with text range; renders margin sticky-note aligned to the line, click to expand/edit.
+- Auto-save (debounced 800 ms) to `notebook_pages` and `annotations`.
 
-1. Add a new entry to `units` in `src/data/studyContent.ts`:
-   - `id: "3.1"`, title: "Social Stratification & Inequality", shortTitle: "Stratification", icon: ⚖️ (or 📊 — happy to swap)
-2. Append ~14–18 new `StudyTopic` entries with `unit: "3.1"` covering the key terms above. Each topic gets a concise definition; pros/cons used only where the concept has clear strengths/limitations (e.g. meritocracy, open vs closed society, absolute vs relative poverty). Plain definitions (e.g. "ascribed status") will have empty pros/cons, matching the existing Unit 1.3 pattern.
-3. No other code changes — `StudyDataContext`, flashcards, quiz generator, Section filter ("3"), dashboard and Exam Skills page already iterate over `units` / `topics` dynamically.
+### Phase 5 — Prose generation for textbook view
+- Use existing `extract-content` edge function pattern + Lovable AI (`google/gemini-2.5-flash`) to convert each unit's topic list into flowing textbook prose. Cache results in `notebook_pages.content` per user on first open (or pre-seed unit-level shared prose in a `unit_prose` public-read table to avoid regenerating per user).
 
-## Two small choices
+### Technical Notes
+- Stack: TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-underline`) + custom comment extension.
+- Auth pattern: `onAuthStateChange` + `getUser()`, session persistence toggled via `supabase.auth` storage option (we'll persist always — "stay logged in" controls whether we set a longer expiry hint; default true).
+- All new tables include explicit `GRANT` + RLS scoped to `auth.uid() = user_id`.
+- Existing `useProgress` / `useCustomUnits` localStorage hooks stay as offline fallback; new `useCloudSync` hook mirrors to Supabase when authed.
 
-- **Depth**: tight exam-prep set (~12 cards) or comprehensive (~18–20 cards)? Default: comprehensive.
-- **Icon**: ⚖️ is already used by old Unit 2.2 — I'll use **📊** for 3.1 to keep icons distinct. Say the word if you'd prefer something else (🪜, 🏛️, 💰).
+### Open Questions
+1. **Notebook prose** — generate on-demand per user via AI (personal, slower first load) OR pre-seed shared prose for the 3 built-in units (instant, identical for everyone, ~$0)? I recommend **shared pre-seeded prose** for built-in units + on-demand for custom units.
+2. **Google sign-in** — add it alongside email/password? (Default in Lovable Cloud is yes; you only mentioned email/password.)
+3. **Migration of existing local progress** — should we auto-import a logged-out user's localStorage data into their account on first login, or start fresh?
 
-Approve and I'll add the unit.
+### Delivery Order
+1. Migration (tables + RLS + grants)
+2. Auth page + header user menu + route guard
+3. "A-Level" → "IGCSE (0495)" rename
+4. Notebook page shell + Sources tab
+5. TipTap ruled-notebook editor + toolbar + highlight/underline
+6. Comments (margin sticky notes) + autosave
+7. Textbook prose generation (shared seed for built-in units)
+8. Cloud-sync existing flashcard progress + exam attempts
