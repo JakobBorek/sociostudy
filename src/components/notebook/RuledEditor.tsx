@@ -17,18 +17,27 @@ const HIGHLIGHT_COLORS = [
   { name: "Bright Green", value: "#7CFC00" },
   { name: "Turquoise", value: "#80FFFF" },
   { name: "Pink", value: "#FF40FF" },
-  { name: "Blue", value: "#0000FF" },
-  { name: "Red", value: "#E53935" },
+  { name: "Blue", value: "#5B8DEF" },
+  { name: "Red", value: "#FF6B6B" },
   { name: "Dark Blue", value: "#000080" },
   { name: "Teal", value: "#3F8C99" },
   { name: "Green", value: "#2E7D32" },
   { name: "Violet", value: "#7B1FA2" },
-  { name: "Dark Red", value: "#7A1410" },
+  { name: "Dark Red", value: "#B23A3A" },
   { name: "Olive", value: "#808000" },
   { name: "Gray", value: "#8C8C8C" },
   { name: "Light Gray", value: "#C7C7C7" },
   { name: "Black", value: "#000000" },
 ];
+
+// Convert hex (#RRGGBB) + opacity 0..1 → rgba string
+function hexToRgba(hex: string, opacity: number) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
 
 interface Props {
   initialContent: any;
