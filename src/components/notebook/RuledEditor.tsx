@@ -216,3 +216,164 @@ function Toolbar({
     </div>
   );
 }
+
+function HighlightControls({
+  editor,
+  markerColor,
+  setMarkerColor,
+  markerOpacity,
+  setMarkerOpacity,
+  pickColor,
+  setCustomColor,
+}: {
+  editor: Editor;
+  markerColor: string | null;
+  setMarkerColor: (c: string | null) => void;
+  markerOpacity: number;
+  setMarkerOpacity: (n: number) => void;
+  pickColor: (c: string) => void;
+  setCustomColor: (c: string) => void;
+}) {
+  const [customColors, setCustomColors] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_COLORS_KEY);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CUSTOM_COLORS_KEY, JSON.stringify(customColors));
+    } catch {
+      /* ignore */
+    }
+  }, [customColors]);
+
+  const allPresets = [
+    ...DEFAULT_HIGHLIGHT_COLORS,
+    ...customColors.map((v) => ({ name: v, value: v, custom: true as const })),
+  ];
+
+  const addCurrentToPresets = () => {
+    if (!markerColor) return;
+    const v = markerColor.toLowerCase();
+    if (DEFAULT_HIGHLIGHT_COLORS.some((c) => c.value.toLowerCase() === v)) return;
+    if (customColors.map((c) => c.toLowerCase()).includes(v)) return;
+    setCustomColors([...customColors, markerColor]);
+  };
+
+  const removeCustom = (value: string) => {
+    setCustomColors(customColors.filter((c) => c !== value));
+  };
+
+  const canAdd =
+    !!markerColor &&
+    !DEFAULT_HIGHLIGHT_COLORS.some((c) => c.value.toLowerCase() === markerColor.toLowerCase()) &&
+    !customColors.map((c) => c.toLowerCase()).includes(markerColor.toLowerCase());
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Highlighter
+        size={14}
+        className={markerColor ? "text-accent" : "text-muted-foreground"}
+        style={markerColor ? { color: markerColor } : undefined}
+      />
+      <div className="flex flex-wrap items-center gap-0.5 max-w-[220px]">
+        {allPresets.map((c: any) => {
+          const active = markerColor === c.value;
+          return (
+            <div key={c.value} className="relative group">
+              <button
+                type="button"
+                title={
+                  active
+                    ? `Marker on — ${c.name} (click to turn off)`
+                    : `Marker: ${c.name}${c.custom ? " (right-click to remove)" : ""}`
+                }
+                onClick={() => pickColor(c.value)}
+                onContextMenu={(e) => {
+                  if (c.custom) {
+                    e.preventDefault();
+                    removeCustom(c.value);
+                  }
+                }}
+                className={`h-4 w-4 rounded-sm border transition hover:scale-110 ${
+                  active
+                    ? "ring-2 ring-offset-1 ring-accent border-accent scale-110"
+                    : "border-border/60"
+                }`}
+                style={{ background: c.value }}
+              />
+              {c.custom && (
+                <button
+                  type="button"
+                  title="Remove custom colour"
+                  onClick={() => removeCustom(c.value)}
+                  className="absolute -top-1 -right-1 hidden group-hover:flex h-3 w-3 rounded-full bg-background border border-border items-center justify-center text-[8px]"
+                >
+                  <X size={8} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <label
+        title="Pick an exact colour"
+        className="relative h-5 w-5 rounded-sm border border-border/60 overflow-hidden cursor-pointer"
+        style={{
+          background:
+            "conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+        }}
+      >
+        <input
+          type="color"
+          value={markerColor && markerColor.startsWith("#") ? markerColor : "#ffff00"}
+          onChange={(e) => setCustomColor(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+        />
+      </label>
+      <button
+        type="button"
+        title={canAdd ? "Save current colour to presets" : "Pick a new colour first"}
+        onClick={addCurrentToPresets}
+        disabled={!canAdd}
+        className="h-5 w-5 rounded-sm border border-border/60 bg-background flex items-center justify-center disabled:opacity-40 hover:bg-muted"
+      >
+        <Plus size={12} />
+      </button>
+      <div className="flex items-center gap-1 ml-1">
+        <span className="text-[10px] text-muted-foreground">Opacity</span>
+        <input
+          type="range"
+          min={10}
+          max={100}
+          step={5}
+          value={Math.round(markerOpacity * 100)}
+          onChange={(e) => setMarkerOpacity(Number(e.target.value) / 100)}
+          className="w-16 accent-accent"
+          title={`Opacity ${Math.round(markerOpacity * 100)}%`}
+        />
+      </div>
+      <button
+        type="button"
+        title="Turn marker off / remove highlight from selection"
+        onClick={() => {
+          const { empty } = editor.state.selection;
+          if (!empty) editor.chain().focus().unsetHighlight().run();
+          setMarkerColor(null);
+        }}
+        className="h-5 w-5 rounded-full border border-border bg-background text-xs flex items-center justify-center"
+      >
+        ✕
+      </button>
+      {markerColor && (
+        <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
+          Marker on
+        </span>
+      )}
+    </div>
+  );
+}
