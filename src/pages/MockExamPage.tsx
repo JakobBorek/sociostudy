@@ -461,7 +461,7 @@ export default function MockExamPage() {
                   value={answers[p.id] ?? ""}
                   onChange={(v) => setAnswers((a) => ({ ...a, [p.id]: v }))}
                   grade={grades[p.id]}
-                  onRewrite={(s) => rewrite(p, s)}
+                  onSuggest={(s) => suggest(p, s)}
                 />
               ))}
             </ol>
