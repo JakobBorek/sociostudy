@@ -519,7 +519,7 @@ function PartView({
   value: string;
   onChange: (v: string) => void;
   grade?: Grade;
-  onSuggest: (sentence: string) => Promise<string>;
+  onSuggest: (sentence: string, opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string }) => Promise<string>;
 }) {
   const flagged = new Map<string, string>();
   for (const s of grade?.sentences ?? []) flagged.set(s.text.trim(), s.issue);
@@ -531,9 +531,12 @@ function PartView({
   const [suggestions, setSuggestions] = useState<Record<string, { text: string; loading: boolean }>>({});
   const [history, setHistory] = useState<string[]>([]);
 
-  const requestSuggestion = async (sentence: string) => {
+  const requestSuggestion = async (
+    sentence: string,
+    opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string },
+  ) => {
     setSuggestions((m) => ({ ...m, [sentence]: { text: m[sentence]?.text ?? "", loading: true } }));
-    const text = await onSuggest(sentence);
+    const text = await onSuggest(sentence, opts);
     setSuggestions((m) => ({ ...m, [sentence]: { text, loading: false } }));
   };
 
