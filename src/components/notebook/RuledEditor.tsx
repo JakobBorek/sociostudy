@@ -7,28 +7,20 @@ import { useEffect, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Highlighter,
   List, ListOrdered, Heading1, Heading2, Heading3, MessageSquarePlus,
-  Undo2, Redo2,
+  Undo2, Redo2, Plus, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Word-style 15-colour highlight palette (5 per row × 3 rows)
-const HIGHLIGHT_COLORS = [
+// Minimal default highlight palette — users can add their own colours.
+const DEFAULT_HIGHLIGHT_COLORS = [
   { name: "Yellow", value: "#FFFF00" },
-  { name: "Bright Green", value: "#7CFC00" },
-  { name: "Turquoise", value: "#80FFFF" },
-  { name: "Pink", value: "#FF40FF" },
-  { name: "Blue", value: "#5B8DEF" },
+  { name: "Green", value: "#7CFC00" },
   { name: "Red", value: "#FF6B6B" },
-  { name: "Dark Blue", value: "#000080" },
-  { name: "Teal", value: "#3F8C99" },
-  { name: "Green", value: "#2E7D32" },
-  { name: "Violet", value: "#7B1FA2" },
-  { name: "Dark Red", value: "#B23A3A" },
-  { name: "Olive", value: "#808000" },
-  { name: "Gray", value: "#8C8C8C" },
-  { name: "Light Gray", value: "#C7C7C7" },
-  { name: "Black", value: "#000000" },
+  { name: "Blue", value: "#5B8DEF" },
+  { name: "Pink", value: "#FF40FF" },
 ];
+
+const CUSTOM_COLORS_KEY = "notebook.customHighlightColors";
 
 // Convert hex (#RRGGBB) + opacity 0..1 → rgba string
 function hexToRgba(hex: string, opacity: number) {
