@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     for (const q of paper?.questions ?? []) {
       const src = q?.source ? `${q.source.title || "Source"}: ${q.source.text || ""}` : undefined;
       for (const p of q?.parts ?? []) {
-        const a = (answers?.[p.id] ?? "").trim();
+        const a = (safeAnswers?.[p.id] ?? "").trim();
         if (!a) continue;
         items.push({ id: p.id, label: p.label, command: p.command, marks: p.marks, prompt: p.prompt, source: src, answer: a });
       }
