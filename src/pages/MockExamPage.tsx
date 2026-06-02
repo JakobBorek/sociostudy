@@ -263,7 +263,11 @@ export default function MockExamPage() {
   };
 
   /* ---------- Suggest a rewrite for one sentence (returns text, doesn't apply) ---------- */
-  const suggest = async (part: Part, sentence: string): Promise<string> => {
+  const suggest = async (
+    part: Part,
+    sentence: string,
+    opts?: { tune?: "simpler" | "shorter" | "longer"; previous?: string },
+  ): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-exam-sentence", {
         body: {
@@ -273,6 +277,8 @@ export default function MockExamPage() {
           original_answer: answers[part.id] ?? "",
           sentence,
           topic_context: context,
+          tune: opts?.tune,
+          previous: opts?.previous,
         },
       });
       if (error) throw error;
