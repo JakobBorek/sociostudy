@@ -11,7 +11,7 @@ import { FileText, Loader2, Sparkles, Pencil, CheckCircle2, RotateCw, ChevronLef
 import { toast } from "@/hooks/use-toast";
 import { useAiAccess } from "@/hooks/useAiAccess";
 import { getPresetPaper } from "@/data/presetExams";
-import { AiAccessDialog } from "@/components/AiAccessDialog";
+import AiAccessDialog from "@/components/AiAccessDialog";
 
 /* ----------------------------- Types ----------------------------- */
 interface Part {
