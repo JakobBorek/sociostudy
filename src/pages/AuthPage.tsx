@@ -129,8 +129,26 @@ export default function AuthPage() {
                 <Label htmlFor="su-pw">Password</Label>
                 <Input id="su-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
+              <div>
+                <Label htmlFor="su-code">Access code</Label>
+                <Input
+                  id="su-code"
+                  type="password"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="Site access code"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This site is private. Enter the access code to create an account, or submit without one to request access.
+                </p>
+              </div>
+              {requested && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
+                  Your access request has been noted. You'll be let in once the site owner approves you.
+                </div>
+              )}
               <Button type="submit" disabled={busy} className="w-full">
-                {busy ? "Creating account…" : "Create account"}
+                {busy ? "Creating account…" : accessCode || ALWAYS_ALLOWED.includes(email.trim().toLowerCase()) ? "Create account" : "Request access"}
               </Button>
             </form>
           </TabsContent>
