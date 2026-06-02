@@ -18,9 +18,22 @@ Output STRICT JSON only.`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { paper, answers, topic_context } = await req.json();
+    const g = await guard<{ paper?: any; answers?: Record<string, string>; topic_context?: string }>(
+      req,
+      { maxBytes: 500_000 },
+    );
+    if (!g.ok) return g.response;
+    const { paper, answers } = g.body;
+    const topic_context = String(g.body.topic_context ?? "").slice(0, 8000);
+    // Clip individual answers to prevent abuse
+    const trimmedAnswers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(answers ?? {})) {
+      trimmedAnswers[String(k).slice(0, 50)] = String(v ?? "").slice(0, 10_000);
+    }
+    const safeAnswers = trimmedAnswers;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
+
 
     // Flatten the parts the student actually answered.
     const items: { id: string; label: string; command: string; marks: number; prompt: string; source?: string; answer: string }[] = [];
