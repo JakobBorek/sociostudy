@@ -16,8 +16,13 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [requested, setRequested] = useState(false);
+
+  const SITE_PASSWORD = "Geschichte01!";
+  const ALWAYS_ALLOWED = ["jakob.borek@gmail.com"];
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
