@@ -98,26 +98,27 @@ export default function MockExamPage() {
 
   /* ---------- Generate paper ---------- */
   const generate = async () => {
-    if (!unit || !user) return;
+    if (selectedUnits.length === 0 || !user) return;
     setGenerating(true);
     setPaper(null);
     setAnswers({});
     setGrades({});
     setExamId(null);
     try {
+      const ids = selectedUnits.map((u) => u.id);
+      const titles = selectedUnits.map((u) => u.title);
       const { data, error } = await supabase.functions.invoke("generate-mock-exam", {
-        body: { unit_id: unit.id, unit_title: unit.title, topic_context: context },
+        body: { unit_id: ids, unit_title: titles, topic_context: context },
       });
       if (error) throw error;
       const p = (data as any).paper as Paper;
       setPaper(p);
-      // Save shell
       const { data: row, error: insErr } = await supabase
         .from("mock_exams")
         .insert({
           user_id: user.id,
-          unit_id: unit.id,
-          unit_title: unit.title,
+          unit_id: ids.join(","),
+          unit_title: titles.join(" + "),
           paper: p as any,
           answers: {},
           grades: {},
