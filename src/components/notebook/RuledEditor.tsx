@@ -17,18 +17,27 @@ const HIGHLIGHT_COLORS = [
   { name: "Bright Green", value: "#7CFC00" },
   { name: "Turquoise", value: "#80FFFF" },
   { name: "Pink", value: "#FF40FF" },
-  { name: "Blue", value: "#0000FF" },
-  { name: "Red", value: "#E53935" },
+  { name: "Blue", value: "#5B8DEF" },
+  { name: "Red", value: "#FF6B6B" },
   { name: "Dark Blue", value: "#000080" },
   { name: "Teal", value: "#3F8C99" },
   { name: "Green", value: "#2E7D32" },
   { name: "Violet", value: "#7B1FA2" },
-  { name: "Dark Red", value: "#7A1410" },
+  { name: "Dark Red", value: "#B23A3A" },
   { name: "Olive", value: "#808000" },
   { name: "Gray", value: "#8C8C8C" },
   { name: "Light Gray", value: "#C7C7C7" },
   { name: "Black", value: "#000000" },
 ];
+
+// Convert hex (#RRGGBB) + opacity 0..1 → rgba string
+function hexToRgba(hex: string, opacity: number) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
 
 interface Props {
   initialContent: any;
@@ -40,8 +49,11 @@ interface Props {
 export function RuledEditor({ initialContent, onChange, onAddComment, editable = true }: Props) {
   // Active marker color — when set, any text you select is auto-highlighted with this color.
   const [markerColor, setMarkerColor] = useState<string | null>(null);
+  const [markerOpacity, setMarkerOpacity] = useState<number>(1);
   const markerColorRef = useRef<string | null>(null);
+  const markerOpacityRef = useRef<number>(1);
   useEffect(() => { markerColorRef.current = markerColor; }, [markerColor]);
+  useEffect(() => { markerOpacityRef.current = markerOpacity; }, [markerOpacity]);
 
   const editor = useEditor({
     extensions: [
@@ -71,7 +83,8 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
       if (!color) return;
       const { from, to, empty } = editor.state.selection;
       if (empty || from === to) return;
-      editor.chain().setHighlight({ color }).setTextSelection(to).run();
+      const applied = hexToRgba(color, markerOpacityRef.current);
+      editor.chain().setHighlight({ color: applied }).setTextSelection(to).run();
     };
     const onMouseUp = () => setTimeout(applyIfSelected, 0);
     const onKeyUp = (e: KeyboardEvent) => {
@@ -107,6 +120,8 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
           onAddComment={onAddComment}
           markerColor={markerColor}
           setMarkerColor={setMarkerColor}
+          markerOpacity={markerOpacity}
+          setMarkerOpacity={setMarkerOpacity}
         />
       )}
       <div
@@ -124,11 +139,15 @@ function Toolbar({
   onAddComment,
   markerColor,
   setMarkerColor,
+  markerOpacity,
+  setMarkerOpacity,
 }: {
   editor: Editor;
   onAddComment?: (t: string, f: number, to: number) => void;
   markerColor: string | null;
   setMarkerColor: (c: string | null) => void;
+  markerOpacity: number;
+  setMarkerOpacity: (n: number) => void;
 }) {
   const tBtn = (active: boolean, onClick: () => void, icon: React.ReactNode, label: string) => (
     <Button
@@ -154,10 +173,18 @@ function Toolbar({
     // If a range is already selected, highlight it right now.
     const { from, to, empty } = editor.state.selection;
     if (!empty && from !== to) {
-      editor.chain().focus().setHighlight({ color }).run();
+      editor.chain().focus().setHighlight({ color: hexToRgba(color, markerOpacity) }).run();
     }
     // Toggle marker mode for subsequent selections.
     setMarkerColor(markerColor === color ? null : color);
+  };
+
+  const setCustomColor = (color: string) => {
+    const { from, to, empty } = editor.state.selection;
+    if (!empty && from !== to) {
+      editor.chain().focus().setHighlight({ color: hexToRgba(color, markerOpacity) }).run();
+    }
+    setMarkerColor(color);
   };
 
   return (
@@ -195,6 +222,34 @@ function Toolbar({
               />
             );
           })}
+        </div>
+        <label
+          title="Pick an exact colour"
+          className="relative h-5 w-5 rounded-sm border border-border/60 overflow-hidden cursor-pointer"
+          style={{
+            background:
+              "conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+          }}
+        >
+          <input
+            type="color"
+            value={markerColor && markerColor.startsWith("#") ? markerColor : "#ffff00"}
+            onChange={(e) => setCustomColor(e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+        </label>
+        <div className="flex items-center gap-1 ml-1">
+          <span className="text-[10px] text-muted-foreground">Opacity</span>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            step={5}
+            value={Math.round(markerOpacity * 100)}
+            onChange={(e) => setMarkerOpacity(Number(e.target.value) / 100)}
+            className="w-16 accent-accent"
+            title={`Opacity ${Math.round(markerOpacity * 100)}%`}
+          />
         </div>
         <button
           type="button"
