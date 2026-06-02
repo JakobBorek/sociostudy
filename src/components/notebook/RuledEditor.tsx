@@ -223,6 +223,34 @@ function Toolbar({
             );
           })}
         </div>
+        <label
+          title="Pick an exact colour"
+          className="relative h-5 w-5 rounded-sm border border-border/60 overflow-hidden cursor-pointer"
+          style={{
+            background:
+              "conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+          }}
+        >
+          <input
+            type="color"
+            value={markerColor && markerColor.startsWith("#") ? markerColor : "#ffff00"}
+            onChange={(e) => setCustomColor(e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+        </label>
+        <div className="flex items-center gap-1 ml-1">
+          <span className="text-[10px] text-muted-foreground">Opacity</span>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            step={5}
+            value={Math.round(markerOpacity * 100)}
+            onChange={(e) => setMarkerOpacity(Number(e.target.value) / 100)}
+            className="w-16 accent-accent"
+            title={`Opacity ${Math.round(markerOpacity * 100)}%`}
+          />
+        </div>
         <button
           type="button"
           title="Turn marker off / remove highlight from selection"
