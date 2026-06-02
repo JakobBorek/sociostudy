@@ -7,7 +7,7 @@ import { seedDocFromUnit } from "@/lib/notebookSeed";
 import type { Unit, StudyTopic } from "@/data/studyContent";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Loader2, Sparkles, Pencil, CheckCircle2, RotateCw, ChevronLeft, History, Lock, Globe } from "lucide-react";
+import { FileText, Loader2, Sparkles, Pencil, CheckCircle2, RotateCw, ChevronLeft, History, Lock, Globe, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAiAccess } from "@/hooks/useAiAccess";
 import { getPresetPaper } from "@/data/presetExams";
@@ -168,6 +168,23 @@ export default function MockExamPage() {
       toast({ title: "Couldn't generate paper", description: (e as Error).message, variant: "destructive" });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  /* ---------- Manual save ---------- */
+  const [saving, setSaving] = useState(false);
+  const saveNow = async () => {
+    if (!examId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("mock_exams")
+      .update({ answers: answersRef.current })
+      .eq("id", examId);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: "Your answers have been saved." });
     }
   };
 
@@ -460,6 +477,11 @@ export default function MockExamPage() {
 
       {/* Sticky action bar */}
       <div className="sticky bottom-3 z-20 flex justify-end gap-2">
+        {examId && (
+          <Button onClick={saveNow} disabled={saving} size="lg" variant="secondary">
+            {saving ? <><Loader2 className="animate-spin" size={16} /> Saving…</> : <><Save size={16} /> Save</>}
+          </Button>
+        )}
         {hasGrades && (
           <div className="px-3 py-1.5 rounded-lg bg-success/15 text-success text-sm font-semibold flex items-center gap-1">
             <CheckCircle2 size={14} /> Marked
