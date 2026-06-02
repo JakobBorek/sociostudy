@@ -5,6 +5,8 @@ import { type QuizQuestion } from "@/data/studyContent";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useProgress } from "@/hooks/useProgress";
 import { supabase } from "@/integrations/supabase/client";
+import { useAiAccess, aiBody } from "@/hooks/useAiAccess";
+import AiAccessDialog from "@/components/AiAccessDialog";
 import { toast } from "sonner";
 
 type Phase = "setup" | "quiz" | "results" | "eval-setup" | "eval-write" | "eval-result";
@@ -92,15 +94,23 @@ export default function QuizPage() {
     updateStreak();
   };
 
+  const ai = useAiAccess();
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
   const submitEval = async () => {
     if (!evalQ || evalAnswer.trim().length < 30) {
       toast.error("Write a longer answer before submitting.");
       return;
     }
+    if (ai.mode === "free") {
+      setAiDialogOpen(true);
+      toast.error("AI marking is locked. Add your Gemini key to unlock.");
+      return;
+    }
     setEvalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("evaluate-answer", {
-        body: { question: evalQ.question, marks: evalMarks, answer: evalAnswer },
+        body: aiBody({ question: evalQ.question, marks: evalMarks, answer: evalAnswer }, ai.userGeminiKey),
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
