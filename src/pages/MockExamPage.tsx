@@ -339,14 +339,19 @@ export default function MockExamPage() {
             {history.length === 0 && <p className="text-sm text-muted-foreground">No attempts yet.</p>}
             <ul className="divide-y">
               {history.map((h) => (
-                <li key={h.id} className="py-2 flex justify-between items-center text-sm">
-                  <div>
-                    <div className="font-medium">Unit {h.unit_id} — {h.unit_title}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString()}</div>
-                  </div>
-                  <div className="font-semibold">
-                    {h.status === "marked" ? `${h.total_awarded ?? 0} / ${h.total_available ?? 0}` : "Unmarked"}
-                  </div>
+                <li key={h.id}>
+                  <button
+                    onClick={() => openAttempt(h.id)}
+                    className="w-full py-2 flex justify-between items-center text-sm text-left hover:bg-muted/50 rounded px-2 transition"
+                  >
+                    <div>
+                      <div className="font-medium">Unit {h.unit_id} — {h.unit_title}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="font-semibold">
+                      {h.status === "marked" ? `${h.total_awarded ?? 0} / ${h.total_available ?? 0}` : "Unmarked"}
+                    </div>
+                  </button>
                 </li>
               ))}
             </ul>
