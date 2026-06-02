@@ -291,11 +291,11 @@ export default function MockExamPage() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => { setPaper(null); setUnitId(null); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setPaper(null); setUnitIds([]); }}>
             <ChevronLeft size={14} /> New paper
           </Button>
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">{unit?.id} — {unit?.shortTitle}</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">{primaryUnit?.id}{selectedUnits.length > 1 ? ` +${selectedUnits.length - 1}` : ""} — {primaryUnit?.shortTitle}</div>
             <h1 className="font-display text-xl font-bold">{paper.title}</h1>
           </div>
         </div>
