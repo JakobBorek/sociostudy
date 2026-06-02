@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
