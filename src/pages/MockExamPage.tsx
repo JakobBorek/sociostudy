@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -171,7 +171,12 @@ export default function MockExamPage() {
     }
   };
 
-  /* ---------- Save answers (debounced) ---------- */
+  /* ---------- Save answers (debounced) + flush on unmount/route change ---------- */
+  const answersRef = useRef(answers);
+  const examIdRef = useRef(examId);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { examIdRef.current = examId; }, [examId]);
+
   useEffect(() => {
     if (!examId) return;
     const t = setTimeout(() => {
@@ -179,6 +184,41 @@ export default function MockExamPage() {
     }, 800);
     return () => clearTimeout(t);
   }, [answers, examId]);
+
+  // Remember the open exam so we can resume after navigating away
+  useEffect(() => {
+    if (!user) return;
+    if (examId) localStorage.setItem(`mock_exam_open_${user.id}`, examId);
+  }, [examId, user]);
+
+  // Flush latest answers on unmount (leaving the page)
+  useEffect(() => {
+    return () => {
+      const id = examIdRef.current;
+      if (id) {
+        supabase.from("mock_exams").update({ answers: answersRef.current }).eq("id", id).then(() => {});
+      }
+    };
+  }, []);
+
+  // Also flush on tab close / refresh
+  useEffect(() => {
+    const handler = () => {
+      const id = examIdRef.current;
+      if (id) supabase.from("mock_exams").update({ answers: answersRef.current }).eq("id", id).then(() => {});
+    };
+    window.addEventListener("beforeunload", handler);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") handler(); });
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  // Auto-resume the last open attempt on mount
+  useEffect(() => {
+    if (!user || isFree || paper) return;
+    const last = localStorage.getItem(`mock_exam_open_${user.id}`);
+    if (last) openAttempt(last);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isFree]);
 
   /* ---------- Mark ---------- */
   const mark = async () => {
