@@ -50,7 +50,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="flex items-center gap-1 overflow-x-auto">
-            {navItems.map(({ to, label, icon: Icon }) => {
+            {visibleNav.map(({ to, label, icon: Icon }) => {
               const active = location.pathname === to;
               return (
                 <Link
@@ -81,6 +81,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setAiOpen(true)} className="gap-2">
+                  <Key size={14} /> AI access
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {mode === "lovable" ? "owner" : mode === "user-key" ? "key" : "free"}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={async () => {
                     await signOut();
@@ -96,6 +103,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="container mx-auto px-4 py-8">{children}</main>
+      <AiAccessDialog open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }
