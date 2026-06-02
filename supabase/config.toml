@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.planning-assistant]
 verify_jwt = false
+
+[functions.prove-concepts]
+verify_jwt = false
