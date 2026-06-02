@@ -422,6 +422,7 @@ export default function QuizPage() {
           </motion.div>
         </AnimatePresence>
       )}
+      <AiAccessDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
     </div>
   );
 }
