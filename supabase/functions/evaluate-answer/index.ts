@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 const RUBRIC_10 = `EVALUATE [10 marks] — Cambridge IGCSE Sociology Part (e) rubric.
 Question style: "Evaluate the extent to which..." (e.g. nuclear family is the most important type of family structure in modern UK society).
@@ -21,7 +22,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const g = await guard<{ question?: string; marks?: number; answer?: string }>(req, { maxBytes: 32_000 });
+    const g = await guard<{ question?: string; marks?: number; answer?: string; userGeminiKey?: string }>(req, { maxBytes: 32_000 });
     if (!g.ok) return g.response;
     const question = String(g.body.question ?? "").slice(0, 2000);
     const answer = String(g.body.answer ?? "").slice(0, 8000);
@@ -32,73 +33,32 @@ serve(async (req) => {
       });
     }
 
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const rubric = RUBRIC_10;
-    const systemPrompt = `You are a strict Cambridge IGCSE Sociology examiner. Mark the student's answer using this rubric:\n\n${rubric}\n\nBe concise. Keep feedback under 120 words.`;
+    const systemPrompt = `You are a strict Cambridge IGCSE Sociology examiner. Mark the student's answer using this rubric:\n\n${rubric}\n\nBe concise. Keep feedback under 120 words. Output STRICT JSON: {"mark":int,"level":"string","strengths":"string","improvements":"string"}.`;
 
     const userPrompt = `Question (${marks} marks): ${question}\n\nStudent answer:\n${answer}\n\nMark it now.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiCall({
+      user: g.user,
+      userGeminiKey: g.body.userGeminiKey,
+      payload: {
         model: "google/gemini-3-flash-preview",
         max_tokens: 400,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "submit_mark",
-            description: "Submit the mark and feedback for the student's answer.",
-            parameters: {
-              type: "object",
-              properties: {
-                mark: { type: "integer", description: `Mark awarded out of ${marks}.` },
-                level: { type: "string", description: "Level band, e.g. 'Level 3 (7-8)'." },
-                strengths: { type: "string", description: "Brief: what worked. Max 2 sentences." },
-                improvements: { type: "string", description: "Brief: how to improve to reach top band. Max 3 sentences." },
-              },
-              required: ["mark", "level", "strengths", "improvements"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "submit_mark" } },
-      }),
+        response_format: { type: "json_object" },
+      },
     });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
+    if (!r.ok) return r.response;
+    const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
+    let result: any;
+    try { result = JSON.parse(raw); } catch {
       return new Response(JSON.stringify({ error: "No structured response from AI" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const result = JSON.parse(toolCall.function.arguments);
     // clamp
     result.mark = Math.max(0, Math.min(marks, Math.round(result.mark)));
     return new Response(JSON.stringify({ ...result, outOf: marks }), {

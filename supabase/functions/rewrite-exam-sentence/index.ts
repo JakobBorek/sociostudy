@@ -4,6 +4,7 @@
 // Output: { rewrite: string }
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -15,6 +16,7 @@ Deno.serve(async (req) => {
       original_answer?: string;
       sentence?: string;
       topic_context?: string;
+      userGeminiKey?: string;
     }>(req, { maxBytes: 64_000 });
     if (!g.ok) return g.response;
     const clip = (s: unknown, n: number) => String(s ?? "").slice(0, n);
@@ -30,8 +32,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
     const sys = `You are an IGCSE Sociology 0495 examiner-tutor.
 Rewrite ONE sentence in a student's exam answer into a tight, exam-length model sentence (or at most two short sentences) that would earn full marks for that question.
@@ -54,30 +54,19 @@ ${original_answer}
 Sentence to rewrite:
 "${sentence}"`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({
+    const r = await aiCall({
+      user: g.user,
+      userGeminiKey: g.body.userGeminiKey,
+      payload: {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: sys },
           { role: "user", content: user },
         ],
-      }),
+      },
     });
-
-    if (aiRes.status === 429)
-      return new Response(JSON.stringify({ error: "Rate limit — try again shortly." }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (aiRes.status === 402)
-      return new Response(JSON.stringify({ error: "Lovable AI credits exhausted." }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (!aiRes.ok) throw new Error(`AI ${aiRes.status}: ${await aiRes.text()}`);
-
-    const json = await aiRes.json();
-    const rewrite = (json?.choices?.[0]?.message?.content ?? "").trim();
+    if (!r.ok) return r.response;
+    const rewrite = (r.data?.choices?.[0]?.message?.content ?? "").trim();
     return new Response(JSON.stringify({ rewrite }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

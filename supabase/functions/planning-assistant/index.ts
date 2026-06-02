@@ -9,6 +9,7 @@
 //   "model_answer"      -> { tariff, command, topic_context, unit_title } -> { question, answer }
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 const SYSTEM = `You are a friendly Cambridge IGCSE Sociology 0495 study coach for a Grade 9 / Year 10 student.
 You explain things simply, in a few sentences, and you use authentic 0495 command words and mark tariffs.
@@ -25,6 +26,7 @@ interface Body {
   unit_title?: string;
   topic_context?: string;
   plan?: Record<string, string>;
+  userGeminiKey?: string;
 }
 
 function userPrompt(b: Body): string {
@@ -98,34 +100,21 @@ Deno.serve(async (req) => {
     const b = g.body;
     if (!b.mode) throw new Error("Missing mode");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({
+    const r = await aiCall({
+      user: g.user,
+      userGeminiKey: b.userGeminiKey,
+      payload: {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM },
           { role: "user", content: userPrompt(b) },
         ],
         response_format: { type: "json_object" },
-      }),
+      },
     });
-
-    if (aiRes.status === 429)
-      return new Response(JSON.stringify({ error: "Rate limit — try again shortly." }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (aiRes.status === 402)
-      return new Response(JSON.stringify({ error: "Lovable AI credits exhausted." }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (!aiRes.ok) throw new Error(`AI ${aiRes.status}: ${await aiRes.text()}`);
-
-    const data = await aiRes.json();
-    const raw = data?.choices?.[0]?.message?.content ?? "{}";
+    if (!r.ok) return r.response;
+    const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
     const out = JSON.parse(raw);
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

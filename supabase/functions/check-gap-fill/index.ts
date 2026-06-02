@@ -3,6 +3,7 @@
 // Output: { results: [{ id, correct, reason }] }
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 interface Item {
   id: string;
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const g = await guard<{ items: Item[] }>(req, { maxBytes: 200_000 });
+    const g = await guard<{ items: Item[]; userGeminiKey?: string }>(req, { maxBytes: 200_000 });
     if (!g.ok) return g.response;
     let { items } = g.body;
     if (!Array.isArray(items) || items.length === 0) {
@@ -70,68 +71,33 @@ Deno.serve(async (req) => {
     }
 
     if (toGrade.length > 0) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
-        // Without AI fall back to strict-fail for the remainder
-        for (const it of toGrade) {
-          results.push({ id: it.id, correct: false, reason: "Doesn't match expected term" });
-        }
-      } else {
-        const prompt = `You are grading a sociology student's fill-in-the-blank revision answers. For each item, the student's notebook had a word blanked out and they typed an answer. Accept reasonable synonyms, near-synonyms, and minor spelling slips. Reject answers that mean something different.
+      const prompt = `You are grading a sociology student's fill-in-the-blank revision answers. For each item, the student's notebook had a word blanked out and they typed an answer. Accept reasonable synonyms, near-synonyms, and minor spelling slips. Reject answers that mean something different.
 
 Return strict JSON: {"results":[{"id":"...","correct":true|false,"reason":"short reason"}]}.
 
 Items:
 ${JSON.stringify(toGrade, null, 2)}`;
 
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Lovable-API-Key": LOVABLE_API_KEY,
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "You output strict JSON only." },
-              { role: "user", content: prompt },
-            ],
-            response_format: { type: "json_object" },
-          }),
-        });
-
-        if (aiRes.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit — try again shortly." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (aiRes.status === 402) {
-          return new Response(JSON.stringify({ error: "Lovable AI credits exhausted." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (!aiRes.ok) {
-          const err = await aiRes.text();
-          throw new Error(`AI error ${aiRes.status}: ${err}`);
-        }
-
-        const json = await aiRes.json();
-        const raw = json?.choices?.[0]?.message?.content ?? "{}";
-        let parsed: { results?: { id: string; correct: boolean; reason: string }[] } = {};
-        try {
-          parsed = JSON.parse(raw);
-        } catch {
-          parsed = {};
-        }
-        const map = new Map((parsed.results ?? []).map((r) => [r.id, r]));
-        for (const it of toGrade) {
-          const r = map.get(it.id);
-          results.push(
-            r ?? { id: it.id, correct: false, reason: "Couldn't verify — try again" },
-          );
-        }
+      const r = await aiCall({
+        user: g.user,
+        userGeminiKey: g.body.userGeminiKey,
+        payload: {
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "You output strict JSON only." },
+            { role: "user", content: prompt },
+          ],
+          response_format: { type: "json_object" },
+        },
+      });
+      if (!r.ok) return r.response;
+      const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
+      let parsed: { results?: { id: string; correct: boolean; reason: string }[] } = {};
+      try { parsed = JSON.parse(raw); } catch { parsed = {}; }
+      const map = new Map((parsed.results ?? []).map((x) => [x.id, x]));
+      for (const it of toGrade) {
+        const x = map.get(it.id);
+        results.push(x ?? { id: it.id, correct: false, reason: "Couldn't verify — try again" });
       }
     }
 

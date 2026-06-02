@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText, ClipboardList } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText, ClipboardList, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAiAccess } from "@/hooks/useAiAccess";
+import AiAccessDialog from "@/components/AiAccessDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +30,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { mode } = useAiAccess();
+  const [aiOpen, setAiOpen] = useState(false);
   const initials = (user?.user_metadata?.display_name || user?.email || "?")
     .slice(0, 1)
     .toUpperCase();
+
+  const visibleNav = navItems.filter((n) => !(n.to === "/prove" && mode === "free"));
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,7 +50,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="flex items-center gap-1 overflow-x-auto">
-            {navItems.map(({ to, label, icon: Icon }) => {
+            {visibleNav.map(({ to, label, icon: Icon }) => {
               const active = location.pathname === to;
               return (
                 <Link
@@ -73,6 +81,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setAiOpen(true)} className="gap-2">
+                  <Key size={14} /> AI access
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {mode === "lovable" ? "owner" : mode === "user-key" ? "key" : "free"}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={async () => {
                     await signOut();
@@ -88,6 +103,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="container mx-auto px-4 py-8">{children}</main>
+      <AiAccessDialog open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }

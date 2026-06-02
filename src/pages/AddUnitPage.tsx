@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Upload, FileText, Loader2, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomUnits } from "@/hooks/useCustomUnits";
+import { useAiAccess, aiBody } from "@/hooks/useAiAccess";
+import AiAccessDialog from "@/components/AiAccessDialog";
 import type { Unit, StudyTopic } from "@/data/studyContent";
 import { toast } from "@/hooks/use-toast";
 
@@ -12,11 +14,13 @@ const ICON_OPTIONS = ["📖", "📝", "🧪", "🔬", "📊", "🧠", "💡", "�
 export default function AddUnitPage() {
   const navigate = useNavigate();
   const { addUnit } = useCustomUnits();
+  const { mode, userGeminiKey } = useAiAccess();
   const [unitTitle, setUnitTitle] = useState("");
   const [unitIcon, setUnitIcon] = useState("📖");
   const [content, setContent] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   const extractPdfText = async (file: File): Promise<string> => {
     const pdfjs: any = await import("pdfjs-dist");
@@ -77,11 +81,17 @@ export default function AddUnitPage() {
       return;
     }
 
+    if (mode === "free") {
+      setAiDialogOpen(true);
+      toast({ title: "AI extraction is locked", description: "Add your Gemini key to extract topics from notes." });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("extract-content", {
-        body: { content: content.slice(0, 15000), unitTitle, unitIcon },
+        body: aiBody({ content: content.slice(0, 15000), unitTitle, unitIcon }, userGeminiKey),
       });
 
       if (error) throw error;
@@ -244,7 +254,17 @@ export default function AddUnitPage() {
             </>
           )}
         </button>
+        {mode === "free" && (
+          <p className="text-xs text-muted-foreground text-center">
+            AI extraction is locked.{" "}
+            <button onClick={() => setAiDialogOpen(true)} className="text-primary underline">
+              Add your Gemini key
+            </button>{" "}
+            to unlock.
+          </p>
+        )}
       </motion.div>
+      <AiAccessDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
     </div>
   );
 }
