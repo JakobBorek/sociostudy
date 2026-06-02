@@ -192,44 +192,14 @@ function Toolbar({
       {tBtn(editor.isActive("italic"), () => editor.chain().focus().toggleItalic().run(), <Italic size={16} />, "Italic")}
       {tBtn(editor.isActive("underline"), () => editor.chain().focus().toggleUnderline().run(), <UnderlineIcon size={16} />, "Underline")}
       <div className="w-px h-5 bg-border mx-1" />
-      <div className="flex items-center gap-1.5">
-        <Highlighter
-          size={14}
-          className={markerColor ? "text-accent" : "text-muted-foreground"}
-          style={markerColor ? { color: markerColor } : undefined}
-        />
-        <div className="grid grid-cols-5 gap-0.5">
-          {HIGHLIGHT_COLORS.map((c) => {
-            const active = markerColor === c.value;
-            return (
-              <button
-                key={c.value}
-                type="button"
-                title={active ? `Marker on — ${c.name} (click to turn off)` : `Marker: ${c.name}`}
-                onClick={() => pickColor(c.value)}
-                className={`h-4 w-4 rounded-sm border transition hover:scale-110 ${
-                  active ? "ring-2 ring-offset-1 ring-accent border-accent scale-110" : "border-border/60"
-                }`}
-                style={{ background: c.value }}
-              />
-            );
-          })}
-        </div>
-        <label
-          title="Pick an exact colour"
-          className="relative h-5 w-5 rounded-sm border border-border/60 overflow-hidden cursor-pointer"
-          style={{
-            background:
-              "conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-          }}
-        >
-          <input
-            type="color"
-            value={markerColor && markerColor.startsWith("#") ? markerColor : "#ffff00"}
-            onChange={(e) => setCustomColor(e.target.value)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-        </label>
+      <HighlightControls
+        editor={editor}
+        markerColor={markerColor}
+        setMarkerColor={setMarkerColor}
+        markerOpacity={markerOpacity}
+        pickColor={pickColor}
+        setCustomColor={setCustomColor}
+      />
         <div className="flex items-center gap-1 ml-1">
           <span className="text-[10px] text-muted-foreground">Opacity</span>
           <input
