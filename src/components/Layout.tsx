@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText, ClipboardList } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText, ClipboardList, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAiAccess } from "@/hooks/useAiAccess";
+import AiAccessDialog from "@/components/AiAccessDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +30,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { mode } = useAiAccess();
+  const [aiOpen, setAiOpen] = useState(false);
   const initials = (user?.user_metadata?.display_name || user?.email || "?")
     .slice(0, 1)
     .toUpperCase();
+
+  const visibleNav = navItems.filter((n) => !(n.to === "/prove" && mode === "free"));
+
 
   return (
     <div className="min-h-screen bg-background">
