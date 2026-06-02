@@ -11,48 +11,44 @@
 // not wording.
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 interface GenBody {
   action: "generate";
   notes: string;
   count?: number;
   scopeLabel?: string;
+  userGeminiKey?: string;
 }
 interface GradeBody {
   action: "grade";
   items: { id: string; prompt: string; concept: string; user_answer: string }[];
+  userGeminiKey?: string;
 }
 type Body = GenBody | GradeBody;
 
 const clip = (s: unknown, n: number) => String(s ?? "").slice(0, n);
 
-async function callAI(prompt: string, system = "You output strict JSON only.") {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("AI is not configured");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-    body: JSON.stringify({
+async function callAI(
+  prompt: string,
+  user: { email?: string },
+  userGeminiKey: string | undefined,
+  system = "You output strict JSON only.",
+) {
+  const r = await aiCall({
+    user,
+    userGeminiKey,
+    payload: {
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: system },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
-    }),
+    },
   });
-  if (res.status === 429) {
-    return { rateLimited: true, status: 429 as const };
-  }
-  if (res.status === 402) {
-    return { rateLimited: true, status: 402 as const };
-  }
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`AI error ${res.status}: ${err}`);
-  }
-  const json = await res.json();
-  const raw = json?.choices?.[0]?.message?.content ?? "{}";
+  if (!r.ok) return { errResponse: r.response };
+  const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
   try {
     return { data: JSON.parse(raw) };
   } catch {
@@ -97,15 +93,8 @@ Notebook:
 ${notes}
 """`;
 
-      const out = await callAI(prompt);
-      if ("rateLimited" in out) {
-        return new Response(
-          JSON.stringify({
-            error: out.status === 402 ? "Lovable AI credits exhausted." : "Rate limit — try again shortly.",
-          }),
-          { status: out.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      const out = await callAI(prompt, g.user, body.userGeminiKey);
+      if ("errResponse" in out) return out.errResponse;
       const questions = Array.isArray(out.data?.questions)
         ? out.data.questions
             .filter((q: any) => q && typeof q.prompt === "string")
@@ -174,15 +163,8 @@ Return strict JSON:
 Items:
 ${JSON.stringify(toGrade, null, 2)}`;
 
-        const out = await callAI(prompt);
-        if ("rateLimited" in out) {
-          return new Response(
-            JSON.stringify({
-              error: out.status === 402 ? "Lovable AI credits exhausted." : "Rate limit — try again shortly.",
-            }),
-            { status: out.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
+        const out = await callAI(prompt, g.user, (body as any).userGeminiKey);
+        if ("errResponse" in out) return out.errResponse;
         const map = new Map(
           (out.data?.results ?? []).map((r: any) => [
             String(r.id),
