@@ -1,32 +1,31 @@
 ## Goal
 
-Turn the three uploaded PDFs (Unit 2 — Identity: Self and Society, parts 2.1, 2.2, 2.3) into built-in units on the site, in the same `StudyTopic` format used by Unit 1. Once added, flashcards, quiz, and Unit Progress will pick them up automatically — no extra wiring.
+Add **Unit 3.1 — What is social stratification?** to the built-in study content, sourced from the uploaded `3.1.pdf` (Cambridge IGCSE Sociology coursebook, Unit 3, section 3.1). Once added, it will automatically appear in Units, Flashcards, Quiz (including the new Section filter — picking "Section 3" will work for free), Dashboard progress, and Exam Skills practice.
 
-## What I already know
+## What the PDF covers
 
-- The PDFs are scanned textbook pages (no embedded text), so I need OCR.
-- I'll use the Lovable AI Gateway (Gemini vision) via a `/tmp` script to read each page image and extract structured topics.
-- Format per topic: `{ id, term, definition, pros[], cons[], notes?[], unit }`.
-- Format per unit: `{ id, title, shortTitle, description, icon }`.
+Section 3.1 introduces social stratification and inequality. Key concepts include:
 
-## Steps
+- Social stratification, social inequality, social differentiation
+- Open vs closed societies
+- Status: ascribed vs achieved
+- Power, life chances, meritocracy
+- Poverty: absolute vs relative, poverty trap, wealth
+- Modern slavery & human trafficking
+- Stratification by age, gender (patriarchy, gendered division of labour), ethnicity (cultural racism), social class
+- Capitalism
+- The Indian caste system (closed-society example)
 
-1. Render every page of `2.1.pdf`, `2.2.pdf`, `2.3.pdf` to JPGs at 200dpi (already done for 2.1).
-2. Send the page images to Gemini with a strict prompt: extract key terms / concepts, each with a clear definition and (where applicable) pros, cons, and short example notes. Output JSON matching the `StudyTopic` shape.
-3. Manually sanity-check the JSON: merge duplicates, trim definitions, ensure pros/cons are short bullets, drop filler ("learning intentions", chapter intros).
-4. Add three new entries to `units` in `src/data/studyContent.ts`:
-   - `2.1` — Identity: Self and Society — Culture, Norms & Values (icon 🧬)
-   - `2.2` — Socialisation & Agencies (icon 👨‍👩‍👧)
-   - `2.3` — Conformity, Social Control & Sub-cultures (icon ⚖️)
-   (Exact titles confirmed after OCR pass.)
-5. Append all extracted topics to the `topics` array with `unit: "2.1" | "2.2" | "2.3"`.
-6. No other code changes needed — `StudyDataContext`, flashcards, quiz generator, dashboard, and Unit Progress already iterate over `units` / `topics`.
+## Plan
 
-## What I need from you
+1. Add a new entry to `units` in `src/data/studyContent.ts`:
+   - `id: "3.1"`, title: "Social Stratification & Inequality", shortTitle: "Stratification", icon: ⚖️ (or 📊 — happy to swap)
+2. Append ~14–18 new `StudyTopic` entries with `unit: "3.1"` covering the key terms above. Each topic gets a concise definition; pros/cons used only where the concept has clear strengths/limitations (e.g. meritocracy, open vs closed society, absolute vs relative poverty). Plain definitions (e.g. "ascribed status") will have empty pros/cons, matching the existing Unit 1.3 pattern.
+3. No other code changes — `StudyDataContext`, flashcards, quiz generator, Section filter ("3"), dashboard and Exam Skills page already iterate over `units` / `topics` dynamically.
 
-Nothing — I have enough in the PDFs. Two small choices:
+## Two small choices
 
-- **Depth**: do you want comprehensive coverage (every key term in the chapter, ~15–25 cards per sub-unit) or a tighter exam-prep set (~8–12 cards per sub-unit)?
-- **Style of pros/cons**: keep them only where the textbook frames a concept that way (e.g. theories, methods), and leave plain-definition terms with empty pros/cons (same pattern Unit 1.3 already uses). Confirm or override.
+- **Depth**: tight exam-prep set (~12 cards) or comprehensive (~18–20 cards)? Default: comprehensive.
+- **Icon**: ⚖️ is already used by old Unit 2.2 — I'll use **📊** for 3.1 to keep icons distinct. Say the word if you'd prefer something else (🪜, 🏛️, 💰).
 
-Approve and I'll OCR all three PDFs and drop the units in.
+Approve and I'll add the unit.
