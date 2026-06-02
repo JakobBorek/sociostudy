@@ -66,6 +66,13 @@ export const units: Unit[] = [
     description: "Age, gender, ethnicity, class, globalisation & hybrid identities",
     icon: "🌍",
   },
+  {
+    id: "3.1",
+    title: "Social Stratification & Inequality",
+    shortTitle: "Stratification",
+    description: "Open/closed societies, status, power, poverty, life chances & key forms of inequality",
+    icon: "📊",
+  },
 ];
 
 export const topics: StudyTopic[] = [
