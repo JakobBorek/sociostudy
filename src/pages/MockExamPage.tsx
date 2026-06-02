@@ -62,7 +62,7 @@ export default function MockExamPage() {
   const { units, topics } = useStudyData();
   const { user } = useAuth();
 
-  const [unitId, setUnitId] = useState<string | null>(null);
+  const [unitIds, setUnitIds] = useState<string[]>([]);
   const [paper, setPaper] = useState<Paper | null>(null);
   const [examId, setExamId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -72,8 +72,17 @@ export default function MockExamPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  const unit = useMemo(() => units.find((u) => u.id === unitId) ?? null, [units, unitId]);
-  const context = useMemo(() => (unit ? unitToContext(unit, topics) : ""), [unit, topics]);
+  const selectedUnits = useMemo(
+    () => units.filter((u) => unitIds.includes(u.id)),
+    [units, unitIds],
+  );
+  const context = useMemo(
+    () => selectedUnits.map((u) => unitToContext(u, topics)).join("\n\n---\n\n"),
+    [selectedUnits, topics],
+  );
+  const primaryUnit = selectedUnits[0] ?? null;
+  const toggleUnit = (id: string) =>
+    setUnitIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   /* ---------- Load history ---------- */
   useEffect(() => {
