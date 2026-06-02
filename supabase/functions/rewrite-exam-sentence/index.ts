@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
 
     const sys = `You are an IGCSE Sociology 0495 examiner-tutor.
 Rewrite ONE sentence in a student's exam answer into a tight, exam-length model sentence (or at most two short sentences) that would earn full marks for that question.
-Keep it MEMORABLE — short, precise, uses a sociological term, and adds the development/example/evaluation the original was missing.
+LANGUAGE LEVEL: write at HIGH B2 / low B1+ English — clear, direct, accessible. Do NOT use C2 / overly formal / literary vocabulary. The student must be able to absorb the FEEDBACK, not learn new words. Prefer common everyday verbs and connectives ("because", "for example", "this shows", "however") over fancy ones ("thereby", "ergo", "notwithstanding"). Keep sociological key terms (e.g. norms, socialisation, sub-culture, stratification) — those are the subject vocabulary and must stay.
+Keep it MEMORABLE — short, precise, uses the needed sociological term, and adds the development/example/evaluation the original was missing.
 Do NOT pad. Do NOT write a paragraph. Output only the rewritten sentence(s), no quotes, no explanation.`;
 
     const user = `Question (${marks} marks, command word: ${command}):
