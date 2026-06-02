@@ -62,7 +62,7 @@ export default function MockExamPage() {
   const { units, topics } = useStudyData();
   const { user } = useAuth();
 
-  const [unitId, setUnitId] = useState<string | null>(null);
+  const [unitIds, setUnitIds] = useState<string[]>([]);
   const [paper, setPaper] = useState<Paper | null>(null);
   const [examId, setExamId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -72,8 +72,17 @@ export default function MockExamPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  const unit = useMemo(() => units.find((u) => u.id === unitId) ?? null, [units, unitId]);
-  const context = useMemo(() => (unit ? unitToContext(unit, topics) : ""), [unit, topics]);
+  const selectedUnits = useMemo(
+    () => units.filter((u) => unitIds.includes(u.id)),
+    [units, unitIds],
+  );
+  const context = useMemo(
+    () => selectedUnits.map((u) => unitToContext(u, topics)).join("\n\n---\n\n"),
+    [selectedUnits, topics],
+  );
+  const primaryUnit = selectedUnits[0] ?? null;
+  const toggleUnit = (id: string) =>
+    setUnitIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   /* ---------- Load history ---------- */
   useEffect(() => {
@@ -89,26 +98,27 @@ export default function MockExamPage() {
 
   /* ---------- Generate paper ---------- */
   const generate = async () => {
-    if (!unit || !user) return;
+    if (selectedUnits.length === 0 || !user) return;
     setGenerating(true);
     setPaper(null);
     setAnswers({});
     setGrades({});
     setExamId(null);
     try {
+      const ids = selectedUnits.map((u) => u.id);
+      const titles = selectedUnits.map((u) => u.title);
       const { data, error } = await supabase.functions.invoke("generate-mock-exam", {
-        body: { unit_id: unit.id, unit_title: unit.title, topic_context: context },
+        body: { unit_id: ids, unit_title: titles, topic_context: context },
       });
       if (error) throw error;
       const p = (data as any).paper as Paper;
       setPaper(p);
-      // Save shell
       const { data: row, error: insErr } = await supabase
         .from("mock_exams")
         .insert({
           user_id: user.id,
-          unit_id: unit.id,
-          unit_title: unit.title,
+          unit_id: ids.join(","),
+          unit_title: titles.join(" + "),
           paper: p as any,
           answers: {},
           grades: {},
@@ -200,7 +210,7 @@ export default function MockExamPage() {
   const hasGrades = Object.keys(grades).length > 0;
 
   /* ----------------------------- Unit picker ----------------------------- */
-  if (!unitId || !paper) {
+  if (unitIds.length === 0 || !paper) {
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <div className="gradient-navy rounded-2xl p-6 text-primary-foreground">
@@ -208,36 +218,44 @@ export default function MockExamPage() {
             <FileText /> Mock Exam — IGCSE Sociology 0495
           </h1>
           <p className="text-primary-foreground/70 text-sm mt-1">
-            Pick a unit. We generate a full Paper 1-style mock with real command words and mark tariffs, then mark it like an examiner.
+            Pick one or more units. We generate a full Paper 1-style mock with real command words and mark tariffs, then mark it like an examiner.
           </p>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-lg font-semibold">Choose a unit</h2>
+            <h2 className="font-display text-lg font-semibold">
+              Choose units {unitIds.length > 0 && <span className="text-muted-foreground text-sm">({unitIds.length} selected)</span>}
+            </h2>
             <Button variant="ghost" size="sm" onClick={() => setShowHistory((s) => !s)}>
               <History size={14} /> {showHistory ? "Hide" : "Past attempts"}
             </Button>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {units.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => setUnitId(u.id)}
-                className={`text-left rounded-xl border bg-card p-4 card-hover ${
-                  unitId === u.id ? "ring-2 ring-accent" : ""
-                }`}
-              >
-                <div className="text-3xl mb-2">{u.icon}</div>
-                <div className="text-xs uppercase text-muted-foreground tracking-wide">Unit {u.id}</div>
-                <h3 className="font-display font-semibold text-base mt-1">{u.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{u.description}</p>
-              </button>
-            ))}
+            {units.map((u) => {
+              const active = unitIds.includes(u.id);
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => toggleUnit(u.id)}
+                  className={`text-left rounded-xl border bg-card p-4 card-hover transition ${
+                    active ? "ring-2 ring-accent border-accent" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="text-3xl mb-2">{u.icon}</div>
+                    {active && <CheckCircle2 size={18} className="text-accent" />}
+                  </div>
+                  <div className="text-xs uppercase text-muted-foreground tracking-wide">Unit {u.id}</div>
+                  <h3 className="font-display font-semibold text-base mt-1">{u.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{u.description}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {unitId && (
+        {unitIds.length > 0 && (
           <div className="flex justify-end">
             <Button onClick={generate} disabled={generating} size="lg">
               {generating ? <><Loader2 className="animate-spin" size={16} /> Generating paper…</> : <><Sparkles size={16} /> Generate Mock Paper</>}
@@ -273,11 +291,11 @@ export default function MockExamPage() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => { setPaper(null); setUnitId(null); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setPaper(null); setUnitIds([]); }}>
             <ChevronLeft size={14} /> New paper
           </Button>
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">{unit?.id} — {unit?.shortTitle}</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">{primaryUnit?.id}{selectedUnits.length > 1 ? ` +${selectedUnits.length - 1}` : ""} — {primaryUnit?.shortTitle}</div>
             <h1 className="font-display text-xl font-bold">{paper.title}</h1>
           </div>
         </div>

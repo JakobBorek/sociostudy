@@ -56,6 +56,45 @@ export type Database = {
         }
         Relationships: []
       }
+      answer_plans: {
+        Row: {
+          command: string | null
+          created_at: string
+          id: string
+          plan: Json
+          question: string
+          tariff: number
+          unit_id: string | null
+          unit_title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          command?: string | null
+          created_at?: string
+          id?: string
+          plan?: Json
+          question: string
+          tariff: number
+          unit_id?: string | null
+          unit_title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          command?: string | null
+          created_at?: string
+          id?: string
+          plan?: Json
+          question?: string
+          tariff?: number
+          unit_id?: string | null
+          unit_title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exam_attempts: {
         Row: {
           answer: string | null
