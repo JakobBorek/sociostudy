@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
     const sys = `You are an IGCSE Sociology 0495 examiner-tutor.
