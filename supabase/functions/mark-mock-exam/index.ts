@@ -2,10 +2,8 @@
 // Input: { paper, answers: { [partId]: string }, topic_context }
 // Output: { grades: { [partId]: { awarded, marks, command, reason, sentences: [{text,issue}] } }, total_awarded, total_available }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, guard } from "../_shared/guard.ts";
+
 
 const SYSTEM = `You are a senior Cambridge IGCSE Sociology 0495 examiner.
 You mark answers using levels-of-response mark schemes appropriate to the command word and tariff:
