@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText } from "lucide-react";
+import { BookOpen, Brain, GraduationCap, LayoutDashboard, Layers, PlusCircle, NotebookPen, LogOut, User, Trophy, FileText, ClipboardList } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ const navItems = [
   { to: "/flashcards", label: "Flashcards", icon: Layers },
   { to: "/quiz", label: "Quiz", icon: Brain },
   { to: "/exam-technique", label: "Exam Skills", icon: GraduationCap },
+  { to: "/planning", label: "Planning", icon: ClipboardList },
   { to: "/mock-exam", label: "Mock Exam", icon: FileText },
   { to: "/add-unit", label: "Add Unit", icon: PlusCircle },
 ];
