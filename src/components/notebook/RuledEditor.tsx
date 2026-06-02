@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Highlighter,
   List, ListOrdered, Heading1, Heading2, Heading3, MessageSquarePlus,
@@ -25,6 +25,11 @@ interface Props {
 }
 
 export function RuledEditor({ initialContent, onChange, onAddComment, editable = true }: Props) {
+  // Active marker color — when set, any text you select is auto-highlighted with this color.
+  const [markerColor, setMarkerColor] = useState<string | null>(null);
+  const markerColorRef = useRef<string | null>(null);
+  useEffect(() => { markerColorRef.current = markerColor; }, [markerColor]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -42,7 +47,35 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
     onUpdate: ({ editor }) => onChange(editor.getJSON()),
   });
 
-  // Reload content if initialContent changes (switching units)
+  // Marker behaviour: when marker is on and the user finishes selecting text,
+  // highlight that range automatically. We listen on mouseup/keyup so the
+  // selection has settled before we mutate it.
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom as HTMLElement;
+    const applyIfSelected = () => {
+      const color = markerColorRef.current;
+      if (!color) return;
+      const { from, to, empty } = editor.state.selection;
+      if (empty || from === to) return;
+      editor.chain().setHighlight({ color }).setTextSelection(to).run();
+    };
+    const onMouseUp = () => setTimeout(applyIfSelected, 0);
+    const onKeyUp = (e: KeyboardEvent) => {
+      // Only react to selection-extending keys
+      if (e.shiftKey || e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End") {
+        setTimeout(applyIfSelected, 0);
+      }
+    };
+    dom.addEventListener("mouseup", onMouseUp);
+    dom.addEventListener("keyup", onKeyUp);
+    return () => {
+      dom.removeEventListener("mouseup", onMouseUp);
+      dom.removeEventListener("keyup", onKeyUp);
+    };
+  }, [editor]);
+
+  // Reload content if initialContent changes (switching units / restore)
   const lastRef = useRef<any>(initialContent);
   useEffect(() => {
     if (editor && initialContent && initialContent !== lastRef.current) {
@@ -55,15 +88,35 @@ export function RuledEditor({ initialContent, onChange, onAddComment, editable =
 
   return (
     <div className="space-y-3">
-      {editable && <Toolbar editor={editor} onAddComment={onAddComment} />}
-      <div className="ruled-page">
+      {editable && (
+        <Toolbar
+          editor={editor}
+          onAddComment={onAddComment}
+          markerColor={markerColor}
+          setMarkerColor={setMarkerColor}
+        />
+      )}
+      <div
+        className="ruled-page"
+        style={markerColor ? { cursor: "crosshair" } : undefined}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>
   );
 }
 
-function Toolbar({ editor, onAddComment }: { editor: Editor; onAddComment?: (t: string, f: number, to: number) => void }) {
+function Toolbar({
+  editor,
+  onAddComment,
+  markerColor,
+  setMarkerColor,
+}: {
+  editor: Editor;
+  onAddComment?: (t: string, f: number, to: number) => void;
+  markerColor: string | null;
+  setMarkerColor: (c: string | null) => void;
+}) {
   const tBtn = (active: boolean, onClick: () => void, icon: React.ReactNode, label: string) => (
     <Button
       type="button"
@@ -84,6 +137,16 @@ function Toolbar({ editor, onAddComment }: { editor: Editor; onAddComment?: (t: 
     onAddComment?.(text, from, to);
   };
 
+  const pickColor = (color: string) => {
+    // If a range is already selected, highlight it right now.
+    const { from, to, empty } = editor.state.selection;
+    if (!empty && from !== to) {
+      editor.chain().focus().setHighlight({ color }).run();
+    }
+    // Toggle marker mode for subsequent selections.
+    setMarkerColor(markerColor === color ? null : color);
+  };
+
   return (
     <div className="sticky top-16 z-10 flex flex-wrap items-center gap-1 rounded-lg border bg-card/95 backdrop-blur px-2 py-1.5 shadow-sm">
       {tBtn(editor.isActive("heading", { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), <Heading1 size={16} />, "H1")}
@@ -95,25 +158,43 @@ function Toolbar({ editor, onAddComment }: { editor: Editor; onAddComment?: (t: 
       {tBtn(editor.isActive("underline"), () => editor.chain().focus().toggleUnderline().run(), <UnderlineIcon size={16} />, "Underline")}
       <div className="w-px h-5 bg-border mx-1" />
       <div className="flex items-center gap-0.5">
-        <Highlighter size={14} className="text-muted-foreground mr-1" />
-        {HIGHLIGHT_COLORS.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            title={`Highlight ${c.name}`}
-            onClick={() => editor.chain().focus().toggleHighlight({ color: c.value }).run()}
-            className="h-5 w-5 rounded-full border border-border hover:scale-110 transition"
-            style={{ background: c.value }}
-          />
-        ))}
+        <Highlighter
+          size={14}
+          className={markerColor ? "text-accent" : "text-muted-foreground"}
+          style={markerColor ? { color: markerColor } : undefined}
+        />
+        {HIGHLIGHT_COLORS.map((c) => {
+          const active = markerColor === c.value;
+          return (
+            <button
+              key={c.value}
+              type="button"
+              title={active ? `Marker on — ${c.name} (click to turn off)` : `Marker: ${c.name}`}
+              onClick={() => pickColor(c.value)}
+              className={`h-5 w-5 rounded-full border transition hover:scale-110 ${
+                active ? "ring-2 ring-offset-1 ring-accent border-accent scale-110" : "border-border"
+              }`}
+              style={{ background: c.value }}
+            />
+          );
+        })}
         <button
           type="button"
-          title="Remove highlight"
-          onClick={() => editor.chain().focus().unsetHighlight().run()}
+          title="Turn marker off / remove highlight from selection"
+          onClick={() => {
+            const { empty } = editor.state.selection;
+            if (!empty) editor.chain().focus().unsetHighlight().run();
+            setMarkerColor(null);
+          }}
           className="h-5 w-5 rounded-full border border-border bg-background text-xs"
         >
           ✕
         </button>
+        {markerColor && (
+          <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
+            Marker on
+          </span>
+        )}
       </div>
       <div className="w-px h-5 bg-border mx-1" />
       {tBtn(editor.isActive("bulletList"), () => editor.chain().focus().toggleBulletList().run(), <List size={16} />, "Bullet list")}
