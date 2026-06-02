@@ -400,10 +400,22 @@ export default function MockExamPage() {
             <CheckCircle2 size={14} /> Marked
           </div>
         )}
-        <Button onClick={mark} disabled={marking} size="lg">
-          {marking ? <><Loader2 className="animate-spin" size={16} /> Marking…</> : hasGrades ? <><RotateCw size={14} /> Re-analyze</> : "Evaluate"}
-        </Button>
+        {isFree ? (
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium flex items-center gap-1">
+              <Lock size={14} /> AI marking locked
+            </div>
+            <Button size="lg" variant="outline" onClick={() => setAiDialogOpen(true)}>
+              Add API key to mark
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={mark} disabled={marking} size="lg">
+            {marking ? <><Loader2 className="animate-spin" size={16} /> Marking…</> : hasGrades ? <><RotateCw size={14} /> Re-analyze</> : "Evaluate"}
+          </Button>
+        )}
       </div>
+      <AiAccessDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
     </motion.div>
   );
 }
