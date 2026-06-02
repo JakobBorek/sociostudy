@@ -3,6 +3,7 @@
 // Output: { grades: { [partId]: { awarded, marks, command, reason, sentences: [{text,issue}] } }, total_awarded, total_available }
 
 import { corsHeaders, guard } from "../_shared/guard.ts";
+import { aiCall } from "../_shared/aiCall.ts";
 
 
 const SYSTEM = `You are a senior Cambridge IGCSE Sociology 0495 examiner.
@@ -18,7 +19,7 @@ Output STRICT JSON only.`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const g = await guard<{ paper?: any; answers?: Record<string, string>; topic_context?: string }>(
+    const g = await guard<{ paper?: any; answers?: Record<string, string>; topic_context?: string; userGeminiKey?: string }>(
       req,
       { maxBytes: 500_000 },
     );
@@ -31,8 +32,6 @@ Deno.serve(async (req) => {
       trimmedAnswers[String(k).slice(0, 50)] = String(v ?? "").slice(0, 10_000);
     }
     const safeAnswers = trimmedAnswers;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
 
     // Flatten the parts the student actually answered.
@@ -69,31 +68,20 @@ ${JSON.stringify(items, null, 2)}
 Return STRICT JSON exactly as:
 { "grades": { "<id>": { "awarded": n, "reason": "...", "sentences": [...] } } }`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({
+    const r = await aiCall({
+      user: g.user,
+      userGeminiKey: g.body.userGeminiKey,
+      payload: {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM },
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
-      }),
+      },
     });
-
-    if (aiRes.status === 429)
-      return new Response(JSON.stringify({ error: "Rate limit — try again shortly." }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (aiRes.status === 402)
-      return new Response(JSON.stringify({ error: "Lovable AI credits exhausted." }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (!aiRes.ok) throw new Error(`AI ${aiRes.status}: ${await aiRes.text()}`);
-
-    const json = await aiRes.json();
-    const raw = json?.choices?.[0]?.message?.content ?? "{}";
+    if (!r.ok) return r.response;
+    const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw);
     const rawGrades = parsed?.grades ?? {};
 
