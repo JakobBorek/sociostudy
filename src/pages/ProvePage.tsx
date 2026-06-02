@@ -1,120 +1,206 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useStudyData } from "@/contexts/StudyDataContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { buildGapFill, mergeDocs, type Segment } from "@/lib/gapFill";
+import { mergeDocs } from "@/lib/gapFill";
 import { seedDocFromUnit } from "@/lib/notebookSeed";
 import { Button } from "@/components/ui/button";
-import { Trophy, RotateCcw, CheckCircle2, XCircle, BookOpen, Lock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Trophy,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
+  Lock,
+  Lightbulb,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 type Scope = { kind: "unit"; unitId: string } | { kind: "all" };
-type GradeMap = Record<string, { correct: boolean; reason: string }>;
+type Question = { id: string; prompt: string; concept: string; hint?: string };
+type Grade = { correct: boolean; score: number; feedback: string; model_answer: string };
+type GradeMap = Record<string, Grade>;
+
+/* ----------------- Helpers ----------------- */
+function docToPlainText(doc: any): string {
+  if (!doc?.content) return "";
+  const lines: string[] = [];
+  const collect = (n: any): string => {
+    if (!n) return "";
+    if (typeof n.text === "string") return n.text;
+    if (Array.isArray(n.content)) return n.content.map(collect).join("");
+    return "";
+  };
+  for (const node of doc.content) {
+    if (node.type === "heading") {
+      const t = collect(node).trim();
+      if (t) lines.push(`\n## ${t}`);
+    } else if (node.type === "paragraph" || node.type === "blockquote") {
+      const t = collect(node).trim();
+      if (t) lines.push(t);
+    } else if (node.type === "bulletList" || node.type === "orderedList") {
+      const ordered = node.type === "orderedList";
+      let i = 1;
+      for (const li of node.content ?? []) {
+        const t = collect(li).trim();
+        if (t) lines.push(`${ordered ? `${i++}.` : "-"} ${t}`);
+      }
+    }
+  }
+  return lines.join("\n").trim();
+}
 
 export default function ProvePage() {
   const { units, topics } = useStudyData();
   const { user } = useAuth();
   const [scope, setScope] = useState<Scope | null>(null);
-  const [doc, setDoc] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [grades, setGrades] = useState<GradeMap>({});
-  const [grading, setGrading] = useState(false);
   const [retryOnly, setRetryOnly] = useState(false);
 
-  // Load notebook content when scope is chosen
+  // When scope changes, load notes and ask the AI for concept questions.
   useEffect(() => {
     if (!scope || !user) return;
     let active = true;
     (async () => {
       setLoading(true);
+      setGenerating(true);
+      setQuestions([]);
       setAnswers({});
       setGrades({});
       setRetryOnly(false);
+      try {
+        let plain = "";
+        let scopeLabel = "";
+        if (scope.kind === "unit") {
+          const unit = units.find((u) => u.id === scope.unitId)!;
+          const { data } = await supabase
+            .from("notebook_pages")
+            .select("content")
+            .eq("user_id", user.id)
+            .eq("unit_id", scope.unitId)
+            .maybeSingle();
+          const content =
+            data?.content && Object.keys(data.content as any).length
+              ? data.content
+              : seedDocFromUnit(unit, topics);
+          plain = docToPlainText(content);
+          scopeLabel = `Unit ${unit.id} — ${unit.title}`;
+        } else {
+          const { data } = await supabase
+            .from("notebook_pages")
+            .select("unit_id, content")
+            .eq("user_id", user.id);
+          const map = new Map((data ?? []).map((r) => [r.unit_id, r.content]));
+          const merged = mergeDocs(
+            units.map((u) => ({
+              unit: u.id,
+              doc: map.get(u.id) ?? seedDocFromUnit(u, topics),
+            })),
+          );
+          plain = docToPlainText(merged);
+          scopeLabel = "Whole Notebook (all units)";
+        }
 
-      if (scope.kind === "unit") {
-        const unit = units.find((u) => u.id === scope.unitId)!;
-        const { data } = await supabase
-          .from("notebook_pages")
-          .select("content")
-          .eq("user_id", user.id)
-          .eq("unit_id", scope.unitId)
-          .maybeSingle();
-        const content =
-          data?.content && Object.keys(data.content).length ? data.content : seedDocFromUnit(unit, topics);
-        if (active) setDoc(content);
-      } else {
-        const { data } = await supabase
-          .from("notebook_pages")
-          .select("unit_id, content")
-          .eq("user_id", user.id);
-        const map = new Map((data ?? []).map((r) => [r.unit_id, r.content]));
-        const merged = mergeDocs(
-          units.map((u) => ({
-            unit: u.id,
-            doc: map.get(u.id) ?? seedDocFromUnit(u, topics),
-          })),
-        );
-        if (active) setDoc(merged);
+        if (!active) return;
+        if (!plain || plain.length < 50) {
+          toast({
+            title: "Not enough notebook content",
+            description: "Open the Notebook and add some text first.",
+            variant: "destructive",
+          });
+          setQuestions([]);
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("prove-concepts", {
+          body: {
+            action: "generate",
+            notes: plain,
+            count: scope.kind === "all" ? 10 : 6,
+            scopeLabel,
+          },
+        });
+        if (error) throw error;
+        if (active) setQuestions((data as any).questions ?? []);
+      } catch (e) {
+        toast({
+          title: "Couldn't generate questions",
+          description: (e as Error).message,
+          variant: "destructive",
+        });
+      } finally {
+        if (active) {
+          setLoading(false);
+          setGenerating(false);
+        }
       }
-      setLoading(false);
     })();
     return () => {
       active = false;
     };
   }, [scope, user, units, topics]);
 
-  const { segments, blanks } = useMemo(
-    () => (doc ? buildGapFill(doc, { density: scope?.kind === "all" ? 9 : 7 }) : { segments: [], blanks: [] }),
-    [doc, scope],
-  );
+  const visibleQuestions = useMemo(() => {
+    if (!retryOnly) return questions;
+    return questions.filter((q) => grades[q.id] && !grades[q.id].correct);
+  }, [questions, grades, retryOnly]);
 
-  const visibleBlankIds = useMemo(() => {
-    if (!retryOnly) return new Set(blanks.map((b) => b.id));
-    return new Set(blanks.filter((b) => grades[b.id] && !grades[b.id].correct).map((b) => b.id));
-  }, [blanks, grades, retryOnly]);
+  const stats = useMemo(() => {
+    const graded = Object.values(grades);
+    return {
+      total: questions.length,
+      graded: graded.length,
+      correct: graded.filter((g) => g.correct).length,
+    };
+  }, [questions, grades]);
 
   const submit = async () => {
-    if (blanks.length === 0) return;
+    const pool = retryOnly ? visibleQuestions : questions;
+    if (pool.length === 0) return;
     setGrading(true);
     try {
-      const items = blanks
-        .filter((b) => !retryOnly || (grades[b.id] && !grades[b.id].correct))
-        .map((b) => ({
-          id: b.id,
-          expected: b.expected,
-          user_answer: answers[b.id] ?? "",
-          context: b.context,
-        }));
-      const { data, error } = await supabase.functions.invoke("check-gap-fill", { body: { items } });
+      const items = pool.map((q) => ({
+        id: q.id,
+        prompt: q.prompt,
+        concept: q.concept,
+        user_answer: answers[q.id] ?? "",
+      }));
+      const { data, error } = await supabase.functions.invoke("prove-concepts", {
+        body: { action: "grade", items },
+      });
       if (error) throw error;
       const next: GradeMap = { ...grades };
-      for (const r of (data as any).results ?? []) next[r.id] = { correct: r.correct, reason: r.reason };
+      for (const r of (data as any).results ?? []) next[r.id] = r;
       setGrades(next);
 
-      // Persist attempt
       const total = items.length;
       const correct = items.filter((it) => next[it.id]?.correct).length;
       await supabase.from("gap_fill_answers").upsert(
         {
           user_id: user!.id,
           topic_id: scope?.kind === "unit" ? `unit:${scope.unitId}` : "all",
-          answers: { answers, grades: next, score: correct, total },
+          answers: { questions, answers, grades: next, score: correct, total },
         },
         { onConflict: "user_id,topic_id" },
       );
     } catch (e) {
-      toast({ title: "Couldn't grade answers", description: (e as Error).message, variant: "destructive" });
+      toast({
+        title: "Couldn't grade answers",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
     } finally {
       setGrading(false);
     }
   };
-
-  const stats = useMemo(() => {
-    const graded = Object.values(grades);
-    return { total: blanks.length, graded: graded.length, correct: graded.filter((g) => g.correct).length };
-  }, [blanks, grades]);
 
   /* ----------------- Scope picker ----------------- */
   if (!scope) {
@@ -125,7 +211,7 @@ export default function ProvePage() {
             <Trophy /> Prove Your Knowledge
           </h1>
           <p className="text-primary-foreground/70 text-sm mt-1">
-            Your notebook turns into a fill-in-the-blanks. Type the missing words and we'll grade them with AI.
+            Short concept questions from your notebook. Answer in your own words — the AI marks for understanding, not exact wording.
           </p>
         </div>
 
@@ -149,9 +235,13 @@ export default function ProvePage() {
               className="text-left rounded-xl border-2 border-accent bg-accent/10 p-4 card-hover"
             >
               <div className="text-3xl mb-2">🔒</div>
-              <div className="text-xs uppercase text-accent-foreground/80 font-semibold tracking-wide">Lock-in mode</div>
+              <div className="text-xs uppercase text-accent-foreground/80 font-semibold tracking-wide">
+                Lock-in mode
+              </div>
               <h3 className="font-display font-semibold text-base mt-1">Whole Notebook</h3>
-              <p className="text-xs text-muted-foreground mt-1">Every unit, one giant gap-fill. Prove you know it cold.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Concept questions drawn from every unit. Prove you know it cold.
+              </p>
             </button>
           </div>
         </div>
@@ -161,9 +251,11 @@ export default function ProvePage() {
 
   /* ----------------- Quiz view ----------------- */
   const scopeLabel =
-    scope.kind === "all" ? "Whole Notebook" : `Unit ${scope.unitId} — ${units.find((u) => u.id === scope.unitId)?.shortTitle ?? ""}`;
+    scope.kind === "all"
+      ? "Whole Notebook"
+      : `Unit ${scope.unitId} — ${units.find((u) => u.id === scope.unitId)?.shortTitle ?? ""}`;
   const hasGrades = Object.keys(grades).length > 0;
-  const allCorrect = hasGrades && stats.correct === stats.total;
+  const allCorrect = hasGrades && stats.correct === stats.total && stats.total > 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -180,33 +272,90 @@ export default function ProvePage() {
               {stats.correct} / {stats.graded}
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={() => setScope(null)}>Change scope</Button>
+          <Button variant="outline" size="sm" onClick={() => setScope(null)}>
+            Change scope
+          </Button>
         </div>
       </div>
 
-      {loading || !doc ? (
-        <div className="ruled-page text-muted-foreground">Loading your notebook…</div>
-      ) : blanks.length === 0 ? (
+      {loading || generating ? (
+        <div className="ruled-page text-muted-foreground flex items-center gap-2">
+          <Sparkles size={16} className="animate-pulse" />
+          Reading your notebook and writing questions…
+        </div>
+      ) : questions.length === 0 ? (
         <div className="ruled-page text-muted-foreground">
-          There isn't enough content in this notebook page yet to make blanks. Open the Notebook and add some text first.
+          No questions yet. Add some content to your notebook for this scope and try again.
         </div>
       ) : (
-        <div className="ruled-page">
-          <div className="notebook-prose">
-            {renderSegments(segments, {
-              visibleBlankIds,
-              answers,
-              setAnswers,
-              grades,
-            })}
-          </div>
+        <div className="space-y-3">
+          {visibleQuestions.map((q, i) => {
+            const grade = grades[q.id];
+            const borderClass = grade
+              ? grade.correct
+                ? "border-success/60"
+                : "border-destructive/60"
+              : "border-border";
+            return (
+              <div key={q.id} className={`rounded-xl border ${borderClass} bg-card p-4 space-y-2`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Question {i + 1}
+                      {q.concept ? ` · ${q.concept}` : ""}
+                    </div>
+                    <p className="font-display font-semibold text-base mt-0.5">{q.prompt}</p>
+                  </div>
+                  {grade && (
+                    <div className="flex items-center gap-1 text-xs font-semibold">
+                      {grade.correct ? (
+                        <CheckCircle2 size={16} className="text-success" />
+                      ) : (
+                        <XCircle size={16} className="text-destructive" />
+                      )}
+                      <span>{grade.score}/4</span>
+                    </div>
+                  )}
+                </div>
+
+                <Textarea
+                  value={answers[q.id] ?? ""}
+                  onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                  placeholder="Answer in your own words — 1 to 3 sentences."
+                  rows={3}
+                  className="resize-y"
+                />
+
+                {q.hint && !grade && (
+                  <div className="text-xs text-muted-foreground flex items-start gap-1.5">
+                    <Lightbulb size={12} className="mt-0.5 shrink-0" />
+                    <span>{q.hint}</span>
+                  </div>
+                )}
+
+                {grade && (
+                  <div className="space-y-1.5 text-sm">
+                    <p className={grade.correct ? "text-success" : "text-destructive"}>{grade.feedback}</p>
+                    {grade.model_answer && (
+                      <div className="rounded-md bg-muted/60 p-2 text-xs">
+                        <span className="font-semibold text-muted-foreground">Model answer: </span>
+                        {grade.model_answer}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {blanks.length > 0 && (
+      {questions.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 sticky bottom-3 z-20">
           <p className="text-xs text-muted-foreground">
-            {retryOnly ? "Showing only the ones you got wrong." : `${blanks.length} blanks total.`}
+            {retryOnly
+              ? "Showing only the ones you got wrong."
+              : `${questions.length} questions · graded on understanding, not wording.`}
           </p>
           <div className="flex gap-2">
             {hasGrades && !allCorrect && (
@@ -214,7 +363,9 @@ export default function ProvePage() {
                 variant="outline"
                 onClick={() => {
                   setRetryOnly(true);
-                  const wrongIds = blanks.filter((b) => grades[b.id] && !grades[b.id].correct).map((b) => b.id);
+                  const wrongIds = questions
+                    .filter((q) => grades[q.id] && !grades[q.id].correct)
+                    .map((q) => q.id);
                   setAnswers((a) => {
                     const next = { ...a };
                     for (const id of wrongIds) next[id] = "";
@@ -237,101 +388,5 @@ export default function ProvePage() {
         </div>
       )}
     </motion.div>
-  );
-}
-
-/* ----------------- Renderer ----------------- */
-function renderSegments(
-  segments: Segment[],
-  ctx: {
-    visibleBlankIds: Set<string>;
-    answers: Record<string, string>;
-    setAnswers: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-    grades: GradeMap;
-  },
-) {
-  const out: React.ReactNode[] = [];
-  let buf: React.ReactNode[] = [];
-  let idx = 0;
-
-  const flushBuf = () => {
-    if (buf.length === 0) return;
-    out.push(<p key={`p${idx++}`}>{buf}</p>);
-    buf = [];
-  };
-
-  segments.forEach((seg, i) => {
-    if (seg.kind === "break") {
-      flushBuf();
-    } else if (seg.kind === "heading") {
-      flushBuf();
-      const H = (`h${seg.level}` as unknown) as keyof JSX.IntrinsicElements;
-      out.push(<H key={`h${idx++}`}>{seg.text}</H>);
-    } else if (seg.kind === "text") {
-      buf.push(<span key={i}>{seg.text}</span>);
-    } else if (seg.kind === "blank") {
-      if (!ctx.visibleBlankIds.has(seg.id)) {
-        // Already correct — show the word in green so they see what it was.
-        const grade = ctx.grades[seg.id];
-        buf.push(
-          <span
-            key={i}
-            className="inline-block px-1 mx-0.5 rounded text-success border-b-2 border-success/40"
-            title={grade?.reason}
-          >
-            {ctx.answers[seg.id] || seg.expected}
-          </span>,
-        );
-        return;
-      }
-      buf.push(<Blank key={i} seg={seg} ctx={ctx} />);
-    }
-  });
-  flushBuf();
-  return out;
-}
-
-function Blank({
-  seg,
-  ctx,
-}: {
-  seg: Extract<Segment, { kind: "blank" }>;
-  ctx: { answers: Record<string, string>; setAnswers: React.Dispatch<React.SetStateAction<Record<string, string>>>; grades: GradeMap };
-}) {
-  const value = ctx.answers[seg.id] ?? "";
-  const grade = ctx.grades[seg.id];
-  const ref = useRef<HTMLInputElement>(null);
-  // Auto width based on expected length (min 5ch)
-  const widthCh = Math.max(seg.expected.length + 2, 6);
-
-  const stateClass = grade
-    ? grade.correct
-      ? "border-success text-success"
-      : "border-destructive text-destructive"
-    : "border-[hsl(210_80%_50%)] text-foreground";
-
-  return (
-    <span className="inline-flex items-baseline mx-0.5 align-baseline">
-      <input
-        ref={ref}
-        value={value}
-        onChange={(e) => ctx.setAnswers((a) => ({ ...a, [seg.id]: e.target.value }))}
-        title={grade?.reason}
-        className={`bg-transparent outline-none border-0 border-b-2 px-1 text-center font-medium ${stateClass}`}
-        style={{ width: `${widthCh}ch`, lineHeight: "28px" }}
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-      />
-      {grade && (
-        <span className="ml-1">
-          {grade.correct ? (
-            <CheckCircle2 size={14} className="text-success" />
-          ) : (
-            <XCircle size={14} className="text-destructive" />
-          )}
-        </span>
-      )}
-    </span>
   );
 }
