@@ -171,6 +171,23 @@ export default function MockExamPage() {
     }
   };
 
+  /* ---------- Manual save ---------- */
+  const [saving, setSaving] = useState(false);
+  const saveNow = async () => {
+    if (!examId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("mock_exams")
+      .update({ answers: answersRef.current })
+      .eq("id", examId);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: "Your answers have been saved." });
+    }
+  };
+
   /* ---------- Save answers (debounced) + flush on unmount/route change ---------- */
   const answersRef = useRef(answers);
   const examIdRef = useRef(examId);
