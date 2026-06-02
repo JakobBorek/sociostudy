@@ -49,8 +49,11 @@ interface Props {
 export function RuledEditor({ initialContent, onChange, onAddComment, editable = true }: Props) {
   // Active marker color — when set, any text you select is auto-highlighted with this color.
   const [markerColor, setMarkerColor] = useState<string | null>(null);
+  const [markerOpacity, setMarkerOpacity] = useState<number>(1);
   const markerColorRef = useRef<string | null>(null);
+  const markerOpacityRef = useRef<number>(1);
   useEffect(() => { markerColorRef.current = markerColor; }, [markerColor]);
+  useEffect(() => { markerOpacityRef.current = markerOpacity; }, [markerOpacity]);
 
   const editor = useEditor({
     extensions: [
