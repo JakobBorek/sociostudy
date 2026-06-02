@@ -65,6 +65,9 @@ export default function MockExamPage() {
   const { units, topics } = useStudyData();
   const { user } = useAuth();
 
+  const { mode } = useAiAccess();
+  const isFree = mode === "free";
+
   const [unitIds, setUnitIds] = useState<string[]>([]);
   const [paper, setPaper] = useState<Paper | null>(null);
   const [examId, setExamId] = useState<string | null>(null);
@@ -74,6 +77,7 @@ export default function MockExamPage() {
   const [marking, setMarking] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   const selectedUnits = useMemo(
     () => units.filter((u) => unitIds.includes(u.id)),
