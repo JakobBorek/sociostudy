@@ -31,7 +31,7 @@ export default function Dashboard() {
               Welcome to <span className="text-gradient">SocioStudy</span>
             </h1>
             <p className="text-primary-foreground/70 text-sm">
-              A-Level Sociology revision — {totalTopics} topics across {units.length} units
+              IGCSE (0495) Sociology revision — {totalTopics} topics across {units.length} units
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-xl bg-sidebar-accent px-4 py-3">
