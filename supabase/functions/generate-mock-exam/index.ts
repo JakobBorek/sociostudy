@@ -73,9 +73,14 @@ Rules:
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { unit_id, unit_title, topic_context } = await req.json();
+    const g = await guard<{ unit_id?: string; unit_title?: string; topic_context?: string }>(req, { maxBytes: 64_000 });
+    if (!g.ok) return g.response;
+    const unit_id = String(g.body.unit_id ?? "").slice(0, 100);
+    const unit_title = String(g.body.unit_title ?? "").slice(0, 200);
+    const topic_context = String(g.body.topic_context ?? "").slice(0, 12_000);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
+
 
     const user = `Unit: ${unit_id} — ${unit_title}
 
