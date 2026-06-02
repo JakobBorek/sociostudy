@@ -61,13 +61,15 @@ export default function NotebookPage() {
               <button
                 key={u.id}
                 onClick={() => setActiveUnit(u.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition flex items-center gap-1.5 ${
                   activeUnit === u.id
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card hover:bg-muted border-border"
                 }`}
               >
-                {u.icon} {u.shortTitle}
+                <span>{u.icon}</span>
+                <span className="font-bold tabular-nums">{u.id}</span>
+                <span className="opacity-80">{u.shortTitle}</span>
               </button>
             ))}
           </div>

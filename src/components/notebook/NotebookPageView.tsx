@@ -45,9 +45,12 @@ const MAX_VERSIONS = 50;
 
 export function NotebookPageView({ unit, topics, editable = true }: Props) {
   const { user } = useAuth();
+  // `doc` only changes on initial load, unit switch, or restore — NOT on every keystroke.
+  // This keeps RuledEditor from re-syncing content and stealing the caret / scroll.
   const [doc, setDoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<Annotation[]>([]);
+  const currentDocRef = useRef<any>(null);
   const saveTimer = useRef<number | null>(null);
   const lastSnapshotAt = useRef<number>(0);
   const lastSnapshotContent = useRef<string>("");
@@ -68,6 +71,7 @@ export function NotebookPageView({ unit, topics, editable = true }: Props) {
       if (!active) return;
       const content = page?.content && Object.keys(page.content).length ? page.content : seedDoc;
       setDoc(content);
+      currentDocRef.current = content;
       lastSnapshotContent.current = JSON.stringify(content);
       lastSnapshotAt.current = Date.now();
 
@@ -135,7 +139,7 @@ export function NotebookPageView({ unit, topics, editable = true }: Props) {
   };
 
   const handleChange = (next: any) => {
-    setDoc(next);
+    currentDocRef.current = next;
     persist(next);
   };
 
@@ -168,16 +172,18 @@ export function NotebookPageView({ unit, topics, editable = true }: Props) {
 
   const restoreVersion = (content: any) => {
     setDoc(content);
+    currentDocRef.current = content;
     persist(content);
     toast({ title: "Version restored", description: "Your notebook now shows this earlier version." });
   };
 
   const saveSnapshotNow = async () => {
-    if (!doc) return;
+    const current = currentDocRef.current ?? doc;
+    if (!current) return;
     const label = window.prompt("Label this snapshot (optional):") || undefined;
     // Force-snapshot by resetting the dedupe key
     lastSnapshotContent.current = "";
-    await snapshot(doc, label);
+    await snapshot(current, label);
     toast({ title: "Snapshot saved" });
   };
 
