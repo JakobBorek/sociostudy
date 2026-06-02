@@ -139,11 +139,15 @@ function Toolbar({
   onAddComment,
   markerColor,
   setMarkerColor,
+  markerOpacity,
+  setMarkerOpacity,
 }: {
   editor: Editor;
   onAddComment?: (t: string, f: number, to: number) => void;
   markerColor: string | null;
   setMarkerColor: (c: string | null) => void;
+  markerOpacity: number;
+  setMarkerOpacity: (n: number) => void;
 }) {
   const tBtn = (active: boolean, onClick: () => void, icon: React.ReactNode, label: string) => (
     <Button
@@ -169,10 +173,18 @@ function Toolbar({
     // If a range is already selected, highlight it right now.
     const { from, to, empty } = editor.state.selection;
     if (!empty && from !== to) {
-      editor.chain().focus().setHighlight({ color }).run();
+      editor.chain().focus().setHighlight({ color: hexToRgba(color, markerOpacity) }).run();
     }
     // Toggle marker mode for subsequent selections.
     setMarkerColor(markerColor === color ? null : color);
+  };
+
+  const setCustomColor = (color: string) => {
+    const { from, to, empty } = editor.state.selection;
+    if (!empty && from !== to) {
+      editor.chain().focus().setHighlight({ color: hexToRgba(color, markerOpacity) }).run();
+    }
+    setMarkerColor(color);
   };
 
   return (
