@@ -254,6 +254,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notebook_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          label: string | null
+          unit_id: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          label?: string | null
+          unit_id: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          label?: string | null
+          unit_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
