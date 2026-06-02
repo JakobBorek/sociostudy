@@ -86,8 +86,6 @@ Deno.serve(async (req) => {
     const unit_id = idsArr.filter(Boolean).join(", ").slice(0, 300);
     const unit_title = titlesArr.filter(Boolean).join(" + ").slice(0, 400);
     const topic_context = String(g.body.topic_context ?? "").slice(0, 24_000);
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Missing LOVABLE_API_KEY");
 
     const multi = idsArr.filter(Boolean).length > 1;
     const user = `Units: ${unit_id} — ${unit_title}
@@ -101,31 +99,20 @@ ${topic_context.slice(0, 16000)}
 
 ${SCHEMA_PROMPT}`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
-      body: JSON.stringify({
+    const r = await aiCall({
+      user: g.user,
+      userGeminiKey: g.body.userGeminiKey,
+      payload: {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM },
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
-      }),
+      },
     });
-
-    if (aiRes.status === 429)
-      return new Response(JSON.stringify({ error: "Rate limit — try again shortly." }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (aiRes.status === 402)
-      return new Response(JSON.stringify({ error: "Lovable AI credits exhausted." }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    if (!aiRes.ok) throw new Error(`AI ${aiRes.status}: ${await aiRes.text()}`);
-
-    const json = await aiRes.json();
-    const raw = json?.choices?.[0]?.message?.content ?? "{}";
+    if (!r.ok) return r.response;
+    const raw = r.data?.choices?.[0]?.message?.content ?? "{}";
     const paper = JSON.parse(raw);
 
     return new Response(JSON.stringify({ paper }), {
