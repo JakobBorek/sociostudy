@@ -15,6 +15,10 @@ const HIGHLIGHT_COLORS = [
   { name: "Green", value: "#bdf2c9" },
   { name: "Pink", value: "#ffc4dd" },
   { name: "Blue", value: "#c4dcff" },
+  { name: "Orange", value: "#ffd8a3" },
+  { name: "Purple", value: "#e0c4ff" },
+  { name: "Red", value: "#ffc4c4" },
+  { name: "Teal", value: "#c4fff0" },
 ];
 
 interface Props {
