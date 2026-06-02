@@ -1,55 +1,84 @@
-## SocioStudy: Accounts + Notebook Expansion
+## Goal
 
-Big scope — splitting into clear phases. Existing features (units, flashcards, quizzes, exam skills) stay untouched; we extend.
+Restrict Lovable-paid AI to `jakob.borek@gmail.com` only. Everyone else either pastes their own Gemini API key (gets full AI) or runs in **free mode** with preset mock exams and no "Prove It".
 
-### Phase 1 — Auth & Cloud Persistence
-- Enable Supabase email/password auth (no auto-confirm, with "stay logged in" checkbox controlling session persistence).
-- Add `/auth` page (sign in / sign up tabs) and a user menu in the header (avatar + sign out).
-- Protect app routes behind auth (redirect to `/auth` if no session).
-- New DB tables (all RLS-scoped to `auth.uid()`):
-  - `profiles` (user_id, display_name)
-  - `notebook_pages` (user_id, unit_id, content JSONB — TipTap doc) — one editable page per unit
-  - `annotations` (user_id, unit_id, type: highlight|underline|comment, range, color, text)
-  - `gap_fill_answers` (user_id, topic_id, answers JSONB)
-  - `exam_attempts` (user_id, question_id, answer, score, feedback, created_at)
-- Migrate existing localStorage progress (`useProgress`, custom units) → keep local fallback, sync to cloud when logged in.
+---
 
-### Phase 2 — "IGCSE (0495)" rename
-- Global find/replace of "A-Level" / "A Level" → "IGCSE (0495)" across pages, headings, meta.
+## 1. Access model
 
-### Phase 3 — Notebook section (new nav item 📓 Notebook)
-Route `/notebook` with two tabs:
-- **Sources tab**: grid of all units (built-in + custom) with "Add to notebook" → seeds that unit's notebook page with generated prose from its topics.
-- **Notebook tab**: single continuous scroll of all unit pages in order, each rendered as a ruled-notebook page.
+Three runtime modes, decided by a new `useAiAccess()` hook:
 
-### Phase 4 — Notebook editor (ruled paper + rich text + annotations)
-- TipTap editor (already a sensible React fit) with:
-  - Ruled-paper CSS: white page, faint blue horizontal lines (`repeating-linear-gradient`), 28px line-height locked to grid, comfortable serif/sans body.
-  - Toolbar: H1/H2/H3, bold, italic, bullet list, numbered list.
-  - Custom marks: `highlight` (color picker: yellow/green/pink/blue), `underline`.
-  - Comment system: select text → "Add comment" → stores annotation with text range; renders margin sticky-note aligned to the line, click to expand/edit.
-- Auto-save (debounced 800 ms) to `notebook_pages` and `annotations`.
+| Mode | Who | Source |
+|---|---|---|
+| `lovable` | `jakob.borek@gmail.com` only | server check on profile email |
+| `user-key` | anyone who pasted a Gemini key | `localStorage.user_gemini_key` |
+| `free` | everyone else (signed in or not) | default |
 
-### Phase 5 — Prose generation for textbook view
-- Use existing `extract-content` edge function pattern + Lovable AI (`google/gemini-2.5-flash`) to convert each unit's topic list into flowing textbook prose. Cache results in `notebook_pages.content` per user on first open (or pre-seed unit-level shared prose in a `unit_prose` public-read table to avoid regenerating per user).
+Remove the old password / `ai_enabled` idea entirely — email is the only gate for paid AI. Signup stays open (no access code field).
 
-### Technical Notes
-- Stack: TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-underline`) + custom comment extension.
-- Auth pattern: `onAuthStateChange` + `getUser()`, session persistence toggled via `supabase.auth` storage option (we'll persist always — "stay logged in" controls whether we set a longer expiry hint; default true).
-- All new tables include explicit `GRANT` + RLS scoped to `auth.uid() = user_id`.
-- Existing `useProgress` / `useCustomUnits` localStorage hooks stay as offline fallback; new `useCloudSync` hook mirrors to Supabase when authed.
+## 2. Database
 
-### Open Questions
-1. **Notebook prose** — generate on-demand per user via AI (personal, slower first load) OR pre-seed shared prose for the 3 built-in units (instant, identical for everyone, ~$0)? I recommend **shared pre-seeded prose** for built-in units + on-demand for custom units.
-2. **Google sign-in** — add it alongside email/password? (Default in Lovable Cloud is yes; you only mentioned email/password.)
-3. **Migration of existing local progress** — should we auto-import a logged-out user's localStorage data into their account on first login, or start fresh?
+Migration:
+- Drop the access-code / `ai_enabled` plan from previous discussion (not needed).
+- No new columns. The edge functions check `auth.users.email === 'jakob.borek@gmail.com'` via JWT claims.
 
-### Delivery Order
-1. Migration (tables + RLS + grants)
-2. Auth page + header user menu + route guard
-3. "A-Level" → "IGCSE (0495)" rename
-4. Notebook page shell + Sources tab
-5. TipTap ruled-notebook editor + toolbar + highlight/underline
-6. Comments (margin sticky notes) + autosave
-7. Textbook prose generation (shared seed for built-in units)
-8. Cloud-sync existing flashcard progress + exam attempts
+## 3. Edge functions (all 8 AI ones)
+
+Each function:
+1. Read optional `userGeminiKey` from request body.
+2. If present → call Google Generative Language API directly with that key. Done.
+3. Else → verify JWT, fetch user email, require it to equal `jakob.borek@gmail.com`. If yes → use existing Lovable AI path. If no → return `403 { error: 'ai_locked' }`.
+
+## 4. Frontend
+
+**New `src/hooks/useAiAccess.ts`** → `{ mode, userGeminiKey, isJakob }`.
+
+**New `AiAccessDialog`** (opened from header + Settings):
+- Tab 1: "Use your own Gemini key" — input + link to aistudio.google.com + Save/Remove.
+- Tab 2: Info about free mode and what's disabled.
+- No password tab.
+
+**`AuthPage.tsx`** — remove `SITE_PASSWORD`, `ALWAYS_ALLOWED`, "Request access", access-code input. Plain email/password signup + signin.
+
+**Every `supabase.functions.invoke(...)` AI call** wraps `useAiAccess()`:
+- `lovable` or `user-key` → call edge function (pass `userGeminiKey` if set).
+- `free` → don't call; trigger the free-mode fallback below.
+
+## 5. Free-mode behavior
+
+**Mock exams**: ship preset JSON papers bundled in the repo.
+- `src/data/presetExams/<unitId>.json` for each existing unit.
+- `src/data/presetExams/general.json` for one cross-unit paper.
+- Mock-exam page: if `mode === 'free'`, load the preset for the current unit (or general) instead of calling `generate-mock-exam`. Grading in free mode = self-check against included answer key (no AI feedback), or simply show model answers after submission.
+
+**"Prove It" feature**: hide entry points (buttons, menu items) when `mode === 'free'`. If a route is hit directly, show a locked card explaining: "Prove It needs AI. Add your Gemini key in Settings to unlock."
+
+**Other AI features** (gap-fill check, sentence rewrite, PDF unit extraction, AI flashcards, answer-plan generator): show a small "AI locked" state with a button → opens `AiAccessDialog`. Static content (existing units, flashcards, quizzes) still works.
+
+## 6. Settings page
+
+Add an "AI access" section:
+- Shows current mode badge.
+- "Paste Gemini API key" input (saved to localStorage).
+- "Remove key" button.
+- Link to aistudio.google.com with one-line "free tier available" note.
+
+## 7. Out of scope
+
+- OpenAI / other providers.
+- Per-user usage tracking.
+- Encrypting the user's pasted key (kept in browser localStorage; documented in dialog).
+- Generating the preset exam JSON content — I'll scaffold the files with a clear TODO structure (10 questions per unit, mark scheme, model answers) and you fill in the actual questions, OR I generate a first draft using AI on your machine before shipping. Confirm which you want.
+
+---
+
+## Files touched
+
+- `supabase/migrations/<new>.sql` — none needed (skip).
+- `supabase/functions/{8 ai functions}/index.ts` — add BYO-key + email gate.
+- `src/hooks/useAiAccess.ts` — new.
+- `src/components/AiAccessDialog.tsx` — new.
+- `src/pages/AuthPage.tsx` — strip access-code flow.
+- `src/pages/Settings.tsx` (or create) — AI access section.
+- `src/data/presetExams/*.json` — new preset papers.
+- Mock-exam page + "Prove It" page + each AI call site — branch on `mode`.
