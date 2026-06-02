@@ -477,6 +477,11 @@ export default function MockExamPage() {
 
       {/* Sticky action bar */}
       <div className="sticky bottom-3 z-20 flex justify-end gap-2">
+        {examId && (
+          <Button onClick={saveNow} disabled={saving} size="lg" variant="secondary">
+            {saving ? <><Loader2 className="animate-spin" size={16} /> Saving…</> : <><Save size={16} /> Save</>}
+          </Button>
+        )}
         {hasGrades && (
           <div className="px-3 py-1.5 rounded-lg bg-success/15 text-success text-sm font-semibold flex items-center gap-1">
             <CheckCircle2 size={14} /> Marked
