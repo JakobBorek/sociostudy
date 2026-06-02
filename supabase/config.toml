@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.check-gap-fill]
 verify_jwt = false
+
+[functions.generate-mock-exam]
+verify_jwt = false
+
+[functions.mark-mock-exam]
+verify_jwt = false
+
+[functions.rewrite-exam-sentence]
+verify_jwt = false

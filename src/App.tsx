@@ -16,6 +16,7 @@ import AddUnitPage from "@/pages/AddUnitPage";
 import ExamTechniquePage from "@/pages/ExamTechniquePage";
 import NotebookPage from "@/pages/NotebookPage";
 import ProvePage from "@/pages/ProvePage";
+import MockExamPage from "@/pages/MockExamPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -46,6 +47,7 @@ const App = () => (
                         <Route path="/exam-technique" element={<ExamTechniquePage />} />
                         <Route path="/notebook" element={<NotebookPage />} />
                         <Route path="/prove" element={<ProvePage />} />
+                        <Route path="/mock-exam" element={<MockExamPage />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Layout>

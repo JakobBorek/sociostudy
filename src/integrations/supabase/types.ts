@@ -140,6 +140,51 @@ export type Database = {
         }
         Relationships: []
       }
+      mock_exams: {
+        Row: {
+          answers: Json
+          created_at: string
+          grades: Json
+          id: string
+          paper: Json
+          status: string
+          total_available: number | null
+          total_awarded: number | null
+          unit_id: string
+          unit_title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          grades?: Json
+          id?: string
+          paper?: Json
+          status?: string
+          total_available?: number | null
+          total_awarded?: number | null
+          unit_id: string
+          unit_title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          grades?: Json
+          id?: string
+          paper?: Json
+          status?: string
+          total_available?: number | null
+          total_awarded?: number | null
+          unit_id?: string
+          unit_title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notebook_pages: {
         Row: {
           content: Json
